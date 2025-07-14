@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSML-SDT: Revolutionary Physics Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            perspective: 1000px;
+        }
+
+        .sdt-element {
+            position: absolute;
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            transition: all 0.016s linear;
+            transform-origin: center;
+            background: radial-gradient(circle, rgba(0,255,0,0.3), rgba(0,255,0,0.1));
+        }
+
+        .sdt-solid {
+            border-color: #ff4444;
+            background: radial-gradient(circle, rgba(255,68,68,0.8), rgba(255,68,68,0.2));
+        }
+
+        .sdt-liquid {
+            border-color: #4444ff;
+            background: radial-gradient(circle, rgba(68,68,255,0.6), rgba(68,68,255,0.1));
+            border-radius: 20%;
+        }
+
+        .sdt-gas {
+            border-color: #44ff44;
+            background: radial-gradient(circle, rgba(68,255,68,0.2), rgba(68,255,68,0.05));
+            border-style: dashed;
+        }
+
+        .sdt-plasma {
+            border-color: #ff44ff;
+            background: radial-gradient(circle, rgba(255,68,255,0.9), rgba(255,68,255,0.3));
+            animation: plasma-glow 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes plasma-glow {
+            from { box-shadow: 0 0 10px #ff44ff; }
+            to { box-shadow: 0 0 30px #ff44ff; }
+        }
+
+        #info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            padding: 20px;
+            border-radius: 10px;
+            border: 1px solid #00ff00;
+            max-width: 400px;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #00ff00;
+        }
+
+        button {
+            background: #003300;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        button:hover {
+            background: #004400;
+        }
+
+        .metric {
+            margin: 5px 0;
+            font-size: 12px;
+        }
+
+        #title {
+            font-size: 24px;
+            color: #00ff00;
+            text-align: center;
+            margin-bottom: 10px;
+            text-shadow: 0 0 10px #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    
+    <div id="info">
+        <div id="title">🌌 HSML-SDT Demo 🌌</div>
+        <div><strong>Spatial Displacement Theory</strong></div>
+        <div>Pure SDT Physics • No Traditional Forces</div>
+        <hr>
+        <div class="metric">Elements: <span id="elementCount">0</span></div>
+        <div class="metric">Total Energy: <span id="totalEnergy">0</span></div>
+        <div class="metric">Displacement Field: <span id="fieldStrength">0</span></div>
+        <div class="metric">Spation Pressure: <span id="spationPressure">0</span></div>
+        <div class="metric">Frame Rate: <span id="frameRate">0</span> FPS</div>
+    </div>
+
+    <div id="controls">
+        <button onclick="addSolidElement()">Add Solid</button>
+        <button onclick="addLiquidElement()">Add Liquid</button>
+        <button onclick="addGasElement()">Add Gas</button>
+        <button onclick="addPlasmaElement()">Add Plasma</button>
+        <br>
+        <button onclick="togglePhysics()">Toggle Physics</button>
+        <button onclick="resetDemo()">Reset</button>
+        <button onclick="exportState()">Export State</button>
+    </div>
+
+    <script type="module">
+        // Import SDT modules
+        import { SDTCore, SDTConstants } from '../dist/physics/sdt-engine/sdt-core.js';
+        import { SDTMatterStates, MatterState } from '../dist/physics/matter-states/sdt-matter-states.js';
+        import { SDTHSMLDocument } from '../dist/core/sdt-hsml-dom.js';
+        import { SDTSolidAngleBridge } from '../dist/core/sdt-solid-angle-bridge.js';
+
+        // Global state
+        let sdtDocument = new SDTHSMLDocument();
+        let solidAngleBridge = new SDTSolidAngleBridge();
+        let physicsRunning = true;
+        let frameCount = 0;
+        let lastFrameTime = 0;
+        let elements = [];
+
+        // Performance tracking
+        let metrics = {
+            totalEnergy: 0,
+            fieldStrength: 0,
+            spationPressure: SDTConstants.P0,
+            frameRate: 0
+        };
+
+        // Initialize demo
+        function init() {
+            console.log('🚀 HSML-SDT Revolutionary Demo Starting...');
+            console.log('⚡ Pure Spatial Displacement Theory Physics Active');
+            
+            // Create initial elements
+            addSolidElement();
+            addLiquidElement();
+            addGasElement();
+            
+            // Start physics simulation
+            sdtDocument.startPhysicsLoop();
+            
+            // Start metrics update
+            setInterval(updateMetrics, 100);
+            
+            console.log('🌌 Making History: First Web Framework with Pure SDT Physics!');
+        }
+
+        // Add different matter state elements
+        window.addSolidElement = function() {
+            const position = {
+                r: Math.random() * 500 + 200,
+                theta: Math.random() * Math.PI,
+                phi: Math.random() * 2 * Math.PI
+            };
+            
+            const element = sdtDocument.createElement('div', position, MatterState.SOLID, 10);
+            const domEl = element.getDOMElement();
+            domEl.className = 'sdt-element sdt-solid';
+            domEl.style.width = '30px';
+            domEl.style.height = '30px';
+            domEl.innerHTML = '●';
+            
+            document.getElementById('container').appendChild(domEl);
+            elements.push(element);
+        };
+
+        window.addLiquidElement = function() {
+            const position = {
+                r: Math.random() * 400 + 150,
+                theta: Math.random() * Math.PI,
+                phi: Math.random() * 2 * Math.PI
+            };
+            
+            const element = sdtDocument.createElement('div', position, MatterState.LIQUID, 5);
+            const domEl = element.getDOMElement();
+            domEl.className = 'sdt-element sdt-liquid';
+            domEl.style.width = '25px';
+            domEl.style.height = '25px';
+            domEl.innerHTML = '~';
+            
+            document.getElementById('container').appendChild(domEl);
+            elements.push(element);
+        };
+
+        window.addGasElement = function() {
+            const position = {
+                r: Math.random() * 600 + 100,
+                theta: Math.random() * Math.PI,
+                phi: Math.random() * 2 * Math.PI
+            };
+            
+            const element = sdtDocument.createElement('div', position, MatterState.GAS, 1);
+            const domEl = element.getDOMElement();
+            domEl.className = 'sdt-element sdt-gas';
+            domEl.style.width = '20px';
+            domEl.style.height = '20px';
+            domEl.innerHTML = '○';
+            
+            document.getElementById('container').appendChild(domEl);
+            elements.push(element);
+        };
+
+        window.addPlasmaElement = function() {
+            const position = {
+                r: Math.random() * 300 + 250,
+                theta: Math.random() * Math.PI,
+                phi: Math.random() * 2 * Math.PI
+            };
+            
+            const element = sdtDocument.createElement('div', position, MatterState.PLASMA, 0.5);
+            const domEl = element.getDOMElement();
+            domEl.className = 'sdt-element sdt-plasma';
+            domEl.style.width = '35px';
+            domEl.style.height = '35px';
+            domEl.innerHTML = '⚡';
+            
+            document.getElementById('container').appendChild(domEl);
+            elements.push(element);
+        };
+
+        window.togglePhysics = function() {
+            if (physicsRunning) {
+                sdtDocument.stopPhysicsLoop();
+                physicsRunning = false;
+                console.log('⏸️ SDT Physics Paused');
+            } else {
+                sdtDocument.startPhysicsLoop();
+                physicsRunning = true;
+                console.log('▶️ SDT Physics Resumed');
+            }
+        };
+
+        window.resetDemo = function() {
+            elements.forEach(el => {
+                el.getDOMElement().remove();
+            });
+            elements = [];
+            sdtDocument = new SDTHSMLDocument();
+            console.log('🔄 Demo Reset - Pure SDT State Restored');
+        };
+
+        window.exportState = function() {
+            const state = {
+                elements: elements.map(el => el.getElementState()),
+                metrics: metrics,
+                timestamp: Date.now(),
+                framework: 'HSML-SDT',
+                physics: 'Pure Spatial Displacement Theory'
+            };
+            
+            console.log('📤 SDT State Export:', state);
+            
+            // Create downloadable file
+            const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'hsml-sdt-state.json';
+            a.click();
+        };
+
+        function updateMetrics() {
+            const allElements = sdtDocument.getAllElements();
+            
+            metrics.totalEnergy = allElements.reduce((sum, el) => sum + el.getTotalEnergy(), 0);
+            metrics.fieldStrength = calculateAverageFieldStrength();
+            
+            // Update UI
+            document.getElementById('elementCount').textContent = allElements.length;
+            document.getElementById('totalEnergy').textContent = metrics.totalEnergy.toFixed(2);
+            document.getElementById('fieldStrength').textContent = metrics.fieldStrength.toExponential(2);
+            document.getElementById('spationPressure').textContent = metrics.spationPressure.toExponential(2);
+            
+            // Calculate FPS
+            const now = performance.now();
+            if (lastFrameTime > 0) {
+                const fps = 1000 / (now - lastFrameTime);
+                metrics.frameRate = fps;
+                document.getElementById('frameRate').textContent = fps.toFixed(1);
+            }
+            lastFrameTime = now;
+        }
+
+        function calculateAverageFieldStrength() {
+            const allElements = sdtDocument.getAllElements();
+            if (allElements.length === 0) return 0;
+            
+            let totalField = 0;
+            for (const element of allElements) {
+                const state = element.getElementState();
+                // Approximate field strength from 21D state
+                totalField += Math.abs(state.state21D.level5[0]);
+            }
+            
+            return totalField / allElements.length;
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', init);
+        
+        // Welcome message
+        setTimeout(() => {
+            console.log(`
+🌟 WELCOME TO THE FUTURE OF WEB PHYSICS! 🌟
+
+You are witnessing the world's FIRST web framework using pure 
+Spatial Displacement Theory (SDT) for all physics calculations.
+
+🔬 What you're seeing:
+• Every element has a 21-dimensional state vector
+• All forces emerge from spation displacement
+• No traditional physics - just spatial pressure gradients
+• Matter states differ only in spation flux resistance
+
+🚀 Revolutionary Features:
+• Spherical coordinate system (no Cartesian singularities)
+• Emergent gravity from pressure gradients  
+• Quantum effects naturally at small scales
+• All phenomena from single SDT framework
+
+This is HSML-SDT - Making History! 🌌
+            `);
+        }, 1000);
+    </script>
+</body>
+</html>

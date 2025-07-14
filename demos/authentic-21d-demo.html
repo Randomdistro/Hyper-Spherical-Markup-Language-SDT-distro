@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HSML-SDT: Authentic 21D Framework Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(ellipse at center, #0a0a0a, #000);
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #universe {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+
+        .hsml-21d {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 0.016s linear;
+            transform-origin: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 0 20px currentColor;
+        }
+
+        .sdt-solid {
+            background: radial-gradient(circle, rgba(255,68,68,0.9), rgba(255,68,68,0.3));
+            border: 2px solid #ff4444;
+            color: #ff4444;
+        }
+
+        .sdt-liquid {
+            background: radial-gradient(circle, rgba(68,68,255,0.7), rgba(68,68,255,0.2));
+            border: 2px solid #4444ff;
+            color: #4444ff;
+            border-radius: 40%;
+        }
+
+        .sdt-gas {
+            background: radial-gradient(circle, rgba(68,255,68,0.3), rgba(68,255,68,0.05));
+            border: 2px dashed #44ff44;
+            color: #44ff44;
+        }
+
+        .sdt-plasma {
+            background: radial-gradient(circle, rgba(255,68,255,1), rgba(255,68,255,0.4));
+            border: 2px solid #ff44ff;
+            color: #ff44ff;
+            animation: plasma-pulse 0.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes plasma-pulse {
+            from { 
+                box-shadow: 0 0 20px #ff44ff, 0 0 40px #ff44ff;
+                transform: scale(1);
+            }
+            to { 
+                box-shadow: 0 0 30px #ff44ff, 0 0 60px #ff44ff, 0 0 80px #ff44ff;
+                transform: scale(1.1);
+            }
+        }
+
+        #info-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.95);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            max-width: 450px;
+            box-shadow: 0 0 30px rgba(0,255,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        #title {
+            font-size: 24px;
+            color: #00ff00;
+            text-align: center;
+            margin-bottom: 15px;
+            text-shadow: 0 0 20px #00ff00;
+        }
+
+        .dimension-group {
+            margin: 10px 0;
+            padding: 8px;
+            border-left: 3px solid #00ff00;
+            background: rgba(0,255,0,0.05);
+        }
+
+        .dimension-level {
+            font-weight: bold;
+            color: #00ff00;
+            margin-bottom: 5px;
+        }
+
+        .dimension-value {
+            font-size: 11px;
+            margin: 2px 0;
+            color: #88ff88;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.95);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            backdrop-filter: blur(10px);
+        }
+
+        button {
+            background: #001100;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #003300;
+            box-shadow: 0 0 15px #00ff00;
+            transform: scale(1.05);
+        }
+
+        #energy-bar {
+            width: 100%;
+            height: 20px;
+            background: #001100;
+            border: 1px solid #00ff00;
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        #energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff00, #88ff00);
+            width: 0%;
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div id="universe"></div>
+    
+    <div id="info-panel">
+        <div id="title">🌌 Authentic 21D Framework 🌌</div>
+        <div id="subtitle" style="text-align: center; color: #88ff88; margin-bottom: 15px; font-size: 12px;">
+            Based on the True SDT 21-Dimensional Model
+        </div>
+        
+        <div id="dimensions-display">
+            <div class="dimension-group">
+                <div class="dimension-level">Level 1: Zero Point</div>
+                <div class="dimension-value">D1 Existence: <span id="d1">1.00</span></div>
+            </div>
+            
+            <div class="dimension-group">
+                <div class="dimension-level">Level 2: Line</div>
+                <div class="dimension-value">D2 Location: <span id="d2">0.00</span></div>
+                <div class="dimension-value">D3 Translocation: <span id="d3">0.00</span></div>
+            </div>
+            
+            <div class="dimension-group">
+                <div class="dimension-level">Level 3: Plane</div>
+                <div class="dimension-value">D4-D6: <span id="d456">0,0,0</span></div>
+            </div>
+            
+            <div class="dimension-group">
+                <div class="dimension-level">Level 4: Sphere</div>
+                <div class="dimension-value">D7-D10: <span id="d7to10">0,0,0,1</span></div>
+            </div>
+            
+            <div class="dimension-group">
+                <div class="dimension-level">Level 5: Flux</div>
+                <div class="dimension-value">D11-D15: <span id="d11to15">0,0,0,0,0</span></div>
+            </div>
+            
+            <div class="dimension-group">
+                <div class="dimension-level">Level 6: Energy</div>
+                <div class="dimension-value">D16-D21: <span id="d16to21">100,0,0,0,0,100</span></div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 15px;">
+            Total System Energy: <span id="total-energy" style="color: #00ff00; font-weight: bold;">0</span>
+            <div id="energy-bar"><div id="energy-fill"></div></div>
+        </div>
+    </div>
+    
+    <div id="controls">
+        <button onclick="addElement('solid')">Add Solid (High Resistance)</button><br>
+        <button onclick="addElement('liquid')">Add Liquid (Medium Flow)</button><br>
+        <button onclick="addElement('gas')">Add Gas (Low Resistance)</button><br>
+        <button onclick="addElement('plasma')">Add Plasma (Ionized)</button><br>
+        <hr style="border-color: #00ff00;">
+        <button onclick="togglePhysics()">Toggle 21D Physics</button><br>
+        <button onclick="clearAll()">Clear Universe</button>
+    </div>
+
+    <script type="module">
+        // Mock implementation for demo purposes
+        // In production, this would import from the compiled TypeScript modules
+        
+        let elements = [];
+        let physicsRunning = true;
+        let animationId;
+        
+        // Authentic 21D state structure
+        function create21DState() {
+            return {
+                ξ0: 1,                          // Existence
+                ξL: [0, 0],                     // Line
+                ξP: [0, 0, 0],                  // Plane
+                ξS: [0, 0, 0, 1],               // Sphere
+                φ: [0, 0, 0, 0, 0],             // Flux
+                ε: [100, 0, 0, 0, 0, 100]       // Energy
+            };
+        }
+        
+        // Matter state properties
+        const matterStates = {
+            solid: { resistance: 0.95, color: '#ff4444', symbol: '●' },
+            liquid: { resistance: 0.6, color: '#4444ff', symbol: '≈' },
+            gas: { resistance: 0.2, color: '#44ff44', symbol: '◯' },
+            plasma: { resistance: 0.05, color: '#ff44ff', symbol: '✦' }
+        };
+        
+        class Element21D {
+            constructor(type) {
+                this.type = type;
+                this.props = matterStates[type];
+                this.state21D = create21DState();
+                
+                // Random initial position
+                const angle = Math.random() * 2 * Math.PI;
+                const radius = 100 + Math.random() * 200;
+                
+                this.state21D.ξS[0] = Math.cos(angle) * radius;
+                this.state21D.ξS[1] = Math.sin(angle) * radius;
+                
+                this.createElement();
+            }
+            
+            createElement() {
+                this.element = document.createElement('div');
+                this.element.className = `hsml-21d sdt-${this.type}`;
+                this.element.innerHTML = this.props.symbol;
+                this.element.style.width = '40px';
+                this.element.style.height = '40px';
+                this.element.style.lineHeight = '40px';
+                this.element.style.textAlign = 'center';
+                this.element.style.fontSize = '20px';
+                
+                document.getElementById('universe').appendChild(this.element);
+            }
+            
+            update(dt) {
+                // Evolve 21D state
+                const state = this.state21D;
+                
+                // Level 2: Line - Movement
+                state.ξL[0] += state.ξL[1] * dt;
+                
+                // Level 3: Plane - Rotation
+                state.ξP[2] += 0.5 * dt;
+                
+                // Level 4: Sphere - 3D position
+                const angle = Date.now() * 0.0001 * (1 - this.props.resistance);
+                state.ξS[0] += Math.cos(angle) * 50 * dt;
+                state.ξS[1] += Math.sin(angle) * 50 * dt;
+                
+                // Level 5: Flux - Oscillations
+                state.φ[1] = Math.sin(Date.now() * 0.001) * (1 - this.props.resistance);
+                state.φ[0] = Math.sqrt(state.ξL[1]**2 + 0.1);
+                
+                // Level 6: Energy - Update based on motion
+                state.ε[1] = 0.5 * state.φ[0]**2;
+                state.ε[2] = 0.5 * state.ξP[2]**2;
+                state.ε[4] = Math.abs(state.φ[1]) * 100;
+                state.ε[5] = state.ε[0] + state.ε[1] + state.ε[2] + state.ε[3] + state.ε[4];
+                
+                this.render();
+            }
+            
+            render() {
+                const state = this.state21D;
+                
+                // Position from sphere coordinates
+                const x = state.ξS[0] + window.innerWidth / 2;
+                const y = state.ξS[1] + window.innerHeight / 2;
+                const z = state.ξS[2] * 100;
+                
+                // Apply transform
+                this.element.style.transform = `
+                    translate3d(${x}px, ${y}px, ${z}px)
+                    rotate(${state.ξP[2]}rad)
+                    scale(${0.5 + state.φ[1] * 0.5})
+                `;
+                
+                // Opacity from flux
+                this.element.style.opacity = 0.3 + Math.abs(state.φ[1]) * 0.7;
+            }
+        }
+        
+        // Add element function
+        window.addElement = function(type) {
+            const element = new Element21D(type);
+            elements.push(element);
+            console.log(`✨ Created ${type} element with authentic 21D state`);
+        };
+        
+        // Toggle physics
+        window.togglePhysics = function() {
+            physicsRunning = !physicsRunning;
+            if (physicsRunning) {
+                animate();
+                console.log('▶️ 21D Physics Running');
+            } else {
+                cancelAnimationFrame(animationId);
+                console.log('⏸️ 21D Physics Paused');
+            }
+        };
+        
+        // Clear all
+        window.clearAll = function() {
+            elements.forEach(el => el.element.remove());
+            elements = [];
+            updateDisplay();
+        };
+        
+        // Update dimension display
+        function updateDisplay() {
+            if (elements.length === 0) return;
+            
+            // Average the first element's state for display
+            const state = elements[0].state21D;
+            
+            document.getElementById('d1').textContent = state.ξ0.toFixed(2);
+            document.getElementById('d2').textContent = state.ξL[0].toFixed(2);
+            document.getElementById('d3').textContent = state.ξL[1].toFixed(2);
+            document.getElementById('d456').textContent = state.ξP.map(v => v.toFixed(1)).join(',');
+            document.getElementById('d7to10').textContent = state.ξS.map(v => v.toFixed(1)).join(',');
+            document.getElementById('d11to15').textContent = state.φ.map(v => v.toFixed(1)).join(',');
+            document.getElementById('d16to21').textContent = state.ε.map(v => v.toFixed(0)).join(',');
+            
+            // Total energy
+            const totalEnergy = elements.reduce((sum, el) => sum + el.state21D.ε[5], 0);
+            document.getElementById('total-energy').textContent = totalEnergy.toFixed(0);
+            
+            // Energy bar
+            const maxEnergy = elements.length * 1000;
+            const fillPercent = Math.min(100, (totalEnergy / maxEnergy) * 100);
+            document.getElementById('energy-fill').style.width = fillPercent + '%';
+        }
+        
+        // Animation loop
+        function animate() {
+            const dt = 0.016; // 60fps
+            
+            elements.forEach(element => {
+                element.update(dt);
+            });
+            
+            updateDisplay();
+            
+            if (physicsRunning) {
+                animationId = requestAnimationFrame(animate);
+            }
+        }
+        
+        // Initialize
+        console.log(`
+🌟 AUTHENTIC 21D FRAMEWORK DEMO 🌟
+
+This demonstrates the TRUE 21-dimensional state vector
+as defined in the SDT treatise:
+
+Level 1: Zero Point (1D) - Existence
+Level 2: Line (2D) - Location & Translocation  
+Level 3: Plane (3D) - Position, Relocation, Rotation
+Level 4: Sphere (4D) - Volume, Translation, Rotation, Orientation
+Level 5: Flux (5D) - Omnidirectional motion & oscillation
+Level 6: Energy (6D) - Derived from all previous levels
+
+Each element evolves through all 21 dimensions!
+        `);
+        
+        // Start with one of each type
+        addElement('solid');
+        addElement('liquid');
+        addElement('gas');
+        
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>

@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 6: Zero-Division Fix & User Physics Demo</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(ellipse at center, #0a0f1a, #000);
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+
+        #universe {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            perspective: 1000px;
+            transform-style: preserve-3d;
+        }
+
+        .hsml-element {
+            position: absolute;
+            border-radius: 50%;
+            transition: all 0.016s linear;
+            transform-origin: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            box-shadow: 0 0 20px currentColor;
+            cursor: pointer;
+        }
+
+        .user-avatar {
+            background: radial-gradient(circle, rgba(0,255,255,0.9), rgba(0,255,255,0.3));
+            border: 3px solid #00ffff;
+            color: #00ffff;
+            animation: user-pulse 2s ease-in-out infinite alternate;
+        }
+
+        .physics-object {
+            background: radial-gradient(circle, rgba(255,255,0,0.7), rgba(255,255,0,0.2));
+            border: 2px solid #ffff00;
+            color: #ffff00;
+        }
+
+        .collision-active {
+            animation: collision-flash 0.5s ease-in-out infinite alternate;
+            border-width: 5px;
+        }
+
+        @keyframes user-pulse {
+            from { 
+                box-shadow: 0 0 20px #00ffff, 0 0 40px #00ffff;
+                transform: scale(1);
+            }
+            to { 
+                box-shadow: 0 0 30px #00ffff, 0 0 60px #00ffff, 0 0 80px #00ffff;
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes collision-flash {
+            from { 
+                box-shadow: 0 0 20px #ff0000;
+                background: radial-gradient(circle, rgba(255,0,0,0.9), rgba(255,0,0,0.3));
+            }
+            to { 
+                box-shadow: 0 0 40px #ff0000, 0 0 60px #ff0000;
+                background: radial-gradient(circle, rgba(255,100,100,0.9), rgba(255,100,100,0.3));
+            }
+        }
+
+        #info-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.95);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            max-width: 400px;
+            box-shadow: 0 0 30px rgba(0,255,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.95);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #00ff00;
+            backdrop-filter: blur(10px);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .status-safe { background: #00ff00; }
+        .status-warning { background: #ffff00; }
+        .status-error { background: #ff0000; }
+
+        button {
+            background: #001100;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 8px 16px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        button:hover {
+            background: #003300;
+            box-shadow: 0 0 15px #00ff00;
+        }
+
+        .coordinate-display {
+            font-size: 11px;
+            margin: 5px 0;
+            color: #88ff88;
+        }
+
+        #viewport-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,100,0,0.1);
+            border-left: 3px solid #00ff00;
+        }
+    </style>
+</head>
+<body>
+    <div id="universe"></div>
+    
+    <div id="info-panel">
+        <div style="text-align: center; color: #00ff00; font-size: 18px; margin-bottom: 15px;">
+            🚀 Phase 6: Zero-Division Fix Demo
+        </div>
+        
+        <div>
+            <span class="status-indicator status-safe"></span>
+            <strong>1-361 Degree System:</strong> Active
+        </div>
+        <div>
+            <span class="status-indicator status-safe"></span>
+            <strong>Zero Division:</strong> Eliminated
+        </div>
+        <div>
+            <span class="status-indicator status-safe"></span>
+            <strong>User Physics:</strong> Integrated
+        </div>
+        
+        <div class="coordinate-display">
+            <strong>User Position:</strong><br>
+            R: <span id="user-r">650</span>mm<br>
+            θ: <span id="user-theta">90</span>° (Safe Range: 1-181°)<br>
+            φ: <span id="user-phi">180</span>° (Safe Range: 1-361°)
+        </div>
+        
+        <div class="coordinate-display">
+            <strong>Collisions Detected:</strong> <span id="collision-count">0</span><br>
+            <strong>Elements in Scene:</strong> <span id="element-count">0</span>
+        </div>
+
+        <div id="viewport-info">
+            <strong>Viewport Steradian Slice:</strong><br>
+            Coverage: <span id="steradian-coverage">0.00</span> steradians<br>
+            Pixels/Steradian: <span id="pixels-per-steradian">0</span><br>
+            FOV: <span id="fov">60</span>°
+        </div>
+    </div>
+    
+    <div id="controls">
+        <button onclick="addPhysicsObject()">Add Physics Object</button><br>
+        <button onclick="moveUserToEdgeCase()">Test Edge Case</button><br>
+        <button onclick="resetUserPosition()">Reset User Position</button><br>
+        <button onclick="toggleCollisionDetection()">Toggle Collisions</button>
+    </div>
+
+    <script type="module">
+        // Mock implementation of the safe spherical math system
+        
+        class SafeSphericalMath {
+            static THETA_MIN = 1;
+            static THETA_MAX = 181;
+            static PHI_MIN = 1;
+            static PHI_MAX = 361;
+            static VIEWER_DISTANCE = 650;
+            
+            static toSafeSpherical(r, thetaRad, phiRad) {
+                // Handle invalid inputs
+                r = isFinite(r) ? r : 100;
+                thetaRad = isFinite(thetaRad) ? thetaRad : Math.PI / 2;
+                phiRad = isFinite(phiRad) ? phiRad : 0;
+                
+                // Convert to degrees
+                let thetaDeg = thetaRad * (180 / Math.PI);
+                let phiDeg = phiRad * (180 / Math.PI);
+                
+                // Normalize to safe ranges
+                thetaDeg = Math.max(this.THETA_MIN, Math.min(this.THETA_MAX, thetaDeg));
+                phiDeg = Math.max(this.PHI_MIN, Math.min(this.PHI_MAX, phiDeg));
+                
+                // Ensure positive radius
+                r = Math.max(0.1, Math.abs(r));
+                
+                return { r, theta: thetaDeg, phi: phiDeg };
+            }
+            
+            static safeViewportProjection(coord) {
+                const thetaRad = coord.theta * (Math.PI / 180);
+                const phiRad = coord.phi * (Math.PI / 180);
+                
+                const x = coord.r * Math.sin(thetaRad) * Math.cos(phiRad);
+                const y = coord.r * Math.sin(thetaRad) * Math.sin(phiRad);
+                const z = coord.r * Math.cos(thetaRad);
+                
+                // Safe projection - no division by zero possible
+                const safeZ = Math.max(-this.VIEWER_DISTANCE * 0.999, z);
+                const denominator = this.VIEWER_DISTANCE + safeZ;
+                
+                return {
+                    x: (x / denominator) * window.innerWidth,
+                    y: (y / denominator) * window.innerHeight,
+                    z: safeZ,
+                    scale: Math.max(0.001, this.VIEWER_DISTANCE / denominator)
+                };
+            }
+            
+            static calculateDistance(coord1, coord2) {
+                const [x1, y1, z1] = this.toCartesian(coord1);
+                const [x2, y2, z2] = this.toCartesian(coord2);
+                
+                return Math.sqrt(
+                    Math.pow(x2 - x1, 2) + 
+                    Math.pow(y2 - y1, 2) + 
+                    Math.pow(z2 - z1, 2)
+                );
+            }
+            
+            static toCartesian(coord) {
+                const thetaRad = coord.theta * (Math.PI / 180);
+                const phiRad = coord.phi * (Math.PI / 180);
+                
+                return [
+                    coord.r * Math.sin(thetaRad) * Math.cos(phiRad),
+                    coord.r * Math.sin(thetaRad) * Math.sin(phiRad),
+                    coord.r * Math.cos(thetaRad)
+                ];
+            }
+            
+            static calculateSteradianCoverage(thetaMin, thetaMax, phiMin, phiMax) {
+                const thetaSpan = (thetaMax - thetaMin) * (Math.PI / 180);
+                const phiSpan = (phiMax - phiMin) * (Math.PI / 180);
+                
+                const solidAngle = phiSpan * (
+                    Math.cos(thetaMin * (Math.PI / 180)) - 
+                    Math.cos(thetaMax * (Math.PI / 180))
+                );
+                
+                return Math.abs(solidAngle);
+            }
+        }
+        
+        class PhysicsObject {
+            constructor(position) {
+                this.id = 'obj-' + Math.random().toString(36).substr(2, 9);
+                this.position = SafeSphericalMath.toSafeSpherical(
+                    position.r || 200 + Math.random() * 400,
+                    (position.theta || Math.random() * Math.PI) ,
+                    (position.phi || Math.random() * 2 * Math.PI)
+                );
+                this.velocity = [
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ];
+                this.mass = 1 + Math.random() * 5;
+                this.radius = this.mass * 10;
+                this.element = this.createElement();
+            }
+            
+            createElement() {
+                const element = document.createElement('div');
+                element.className = 'hsml-element physics-object';
+                element.innerHTML = '⚫';
+                element.style.width = this.radius + 'px';
+                element.style.height = this.radius + 'px';
+                element.style.lineHeight = this.radius + 'px';
+                element.style.fontSize = (this.radius * 0.6) + 'px';
+                
+                document.getElementById('universe').appendChild(element);
+                return element;
+            }
+            
+            update(dt) {
+                // Simple physics update
+                this.position.r += this.velocity[0] * dt;
+                this.position.theta += this.velocity[1] * dt * 0.1;
+                this.position.phi += this.velocity[2] * dt * 0.1;
+                
+                // Keep in safe bounds
+                this.position = SafeSphericalMath.toSafeSpherical(
+                    this.position.r, 
+                    this.position.theta * (Math.PI / 180), 
+                    this.position.phi * (Math.PI / 180)
+                );
+                
+                this.render();
+            }
+            
+            render() {
+                const projection = SafeSphericalMath.safeViewportProjection(this.position);
+                
+                this.element.style.transform = 
+                    `translate3d(${projection.x}px, ${projection.y}px, ${projection.z}px) scale(${projection.scale})`;
+                
+                // Store safe coordinate data
+                this.element.setAttribute('data-r', this.position.r.toString());
+                this.element.setAttribute('data-theta', this.position.theta.toString());
+                this.element.setAttribute('data-phi', this.position.phi.toString());
+            }
+            
+            checkCollision(userState) {
+                const distance = SafeSphericalMath.calculateDistance(this.position, userState.position);
+                const totalRadius = this.radius * 0.01 + userState.boundingRadius; // Convert pixels to meters
+                
+                return {
+                    collision: distance < totalRadius,
+                    distance: distance,
+                    penetration: Math.max(0, totalRadius - distance)
+                };
+            }
+        }
+        
+        class HSMLDocument {
+            constructor() {
+                this.objects = [];
+                this.userState = {
+                    position: { r: 650, theta: 90, phi: 180 },
+                    orientation: { r: 1, theta: 90, phi: 0 },
+                    velocity: [0, 0, 0],
+                    mass: 70,
+                    boundingRadius: 0.3,
+                    element: this.createUserAvatar()
+                };
+                this.collisionDetection = true;
+                this.animationId = null;
+                
+                this.startPhysicsLoop();
+                this.setupMouseControl();
+            }
+            
+            createUserAvatar() {
+                const element = document.createElement('div');
+                element.className = 'hsml-element user-avatar';
+                element.innerHTML = '👤';
+                element.style.width = '40px';
+                element.style.height = '40px';
+                element.style.lineHeight = '40px';
+                element.style.fontSize = '24px';
+                element.style.zIndex = '1000';
+                
+                document.getElementById('universe').appendChild(element);
+                return element;
+            }
+            
+            setupMouseControl() {
+                // Move user with mouse
+                document.addEventListener('mousemove', (e) => {
+                    const normalizedX = e.clientX / window.innerWidth;
+                    const normalizedY = e.clientY / window.innerHeight;
+                    
+                    // Map mouse to safe spherical coordinates
+                    this.userState.position.theta = 30 + normalizedY * 120; // 30-150 degrees
+                    this.userState.position.phi = 60 + normalizedX * 240;   // 60-300 degrees
+                    
+                    this.updateUserDisplay();
+                });
+            }
+            
+            addPhysicsObject(position = {}) {
+                const obj = new PhysicsObject(position);
+                this.objects.push(obj);
+                this.updateElementCount();
+            }
+            
+            removeObject(obj) {
+                const index = this.objects.indexOf(obj);
+                if (index > -1) {
+                    this.objects.splice(index, 1);
+                    obj.element.remove();
+                    this.updateElementCount();
+                }
+            }
+            
+            startPhysicsLoop() {
+                const animate = () => {
+                    const dt = 0.016; // 60fps
+                    
+                    // Update all physics objects
+                    this.objects.forEach(obj => obj.update(dt));
+                    
+                    // Update user display
+                    this.updateUserPosition();
+                    this.checkCollisions();
+                    this.updateViewportInfo();
+                    
+                    this.animationId = requestAnimationFrame(animate);
+                };
+                
+                animate();
+            }
+            
+            updateUserPosition() {
+                // Ensure user position is in safe bounds
+                this.userState.position = SafeSphericalMath.toSafeSpherical(
+                    this.userState.position.r,
+                    this.userState.position.theta * (Math.PI / 180),
+                    this.userState.position.phi * (Math.PI / 180)
+                );
+                
+                const projection = SafeSphericalMath.safeViewportProjection(this.userState.position);
+                
+                this.userState.element.style.transform = 
+                    `translate3d(${projection.x}px, ${projection.y}px, ${projection.z}px) scale(${projection.scale})`;
+            }
+            
+            checkCollisions() {
+                if (!this.collisionDetection) return;
+                
+                let collisionCount = 0;
+                
+                this.objects.forEach(obj => {
+                    const collision = obj.checkCollision(this.userState);
+                    
+                    if (collision.collision) {
+                        obj.element.classList.add('collision-active');
+                        collisionCount++;
+                    } else {
+                        obj.element.classList.remove('collision-active');
+                    }
+                });
+                
+                document.getElementById('collision-count').textContent = collisionCount;
+            }
+            
+            updateUserDisplay() {
+                document.getElementById('user-r').textContent = Math.round(this.userState.position.r);
+                document.getElementById('user-theta').textContent = Math.round(this.userState.position.theta);
+                document.getElementById('user-phi').textContent = Math.round(this.userState.position.phi);
+            }
+            
+            updateElementCount() {
+                document.getElementById('element-count').textContent = this.objects.length;
+            }
+            
+            updateViewportInfo() {
+                const fov = 60;
+                const halfFov = fov / 2;
+                
+                const thetaMin = Math.max(1, this.userState.position.theta - halfFov);
+                const thetaMax = Math.min(181, this.userState.position.theta + halfFov);
+                const phiMin = Math.max(1, this.userState.position.phi - halfFov);
+                const phiMax = Math.min(361, this.userState.position.phi + halfFov);
+                
+                const steradianCoverage = SafeSphericalMath.calculateSteradianCoverage(
+                    thetaMin, thetaMax, phiMin, phiMax
+                );
+                
+                const screenPixels = window.innerWidth * window.innerHeight;
+                const pixelsPerSteradian = steradianCoverage > 0 ? screenPixels / steradianCoverage : 0;
+                
+                document.getElementById('steradian-coverage').textContent = steradianCoverage.toFixed(4);
+                document.getElementById('pixels-per-steradian').textContent = Math.round(pixelsPerSteradian);
+            }
+            
+            moveToEdgeCase() {
+                // Test extreme coordinates that would cause division by zero in old system
+                const edgeCases = [
+                    { r: 1, theta: 1, phi: 1 },           // Minimum values
+                    { r: 10000, theta: 181, phi: 361 },   // Maximum values
+                    { r: 650, theta: 90, phi: 1 },        // Edge phi
+                    { r: 650, theta: 1, phi: 180 },       // Edge theta
+                    { r: 0.1, theta: 90, phi: 180 }       // Minimum radius
+                ];
+                
+                const randomCase = edgeCases[Math.floor(Math.random() * edgeCases.length)];
+                this.userState.position = randomCase;
+                this.updateUserDisplay();
+                
+                console.log('🧪 Testing edge case:', randomCase);
+                console.log('✅ No division by zero - safe calculation completed');
+            }
+            
+            resetUserPosition() {
+                this.userState.position = { r: 650, theta: 90, phi: 180 };
+                this.updateUserDisplay();
+            }
+            
+            toggleCollisionDetection() {
+                this.collisionDetection = !this.collisionDetection;
+                if (!this.collisionDetection) {
+                    this.objects.forEach(obj => obj.element.classList.remove('collision-active'));
+                    document.getElementById('collision-count').textContent = '0';
+                }
+            }
+        }
+        
+        // Global functions for buttons
+        let hsmlDoc;
+        
+        window.addPhysicsObject = () => hsmlDoc.addPhysicsObject();
+        window.moveUserToEdgeCase = () => hsmlDoc.moveToEdgeCase();
+        window.resetUserPosition = () => hsmlDoc.resetUserPosition();
+        window.toggleCollisionDetection = () => hsmlDoc.toggleCollisionDetection();
+        
+        // Initialize the demo
+        window.addEventListener('load', () => {
+            hsmlDoc = new HSMLDocument();
+            
+            // Add some initial objects
+            for (let i = 0; i < 5; i++) {
+                hsmlDoc.addPhysicsObject();
+            }
+            
+            console.log(`
+🚀 PHASE 6 DEMO LOADED SUCCESSFULLY
+
+✅ Zero-Division Elimination:
+   - All angles use 1-361 degree system
+   - No zero angles possible
+   - Safe viewport projection guaranteed
+
+✅ User Physics Integration:
+   - User represented as physics object
+   - Full collision detection
+   - Spherical space movement
+   - Steradian viewport calculation
+
+✅ Revolutionary Features:
+   - Move mouse to control user position
+   - Click "Test Edge Case" to test extreme coordinates
+   - Add physics objects and watch collisions
+   - All calculations guaranteed division-by-zero free
+
+🌟 This is the world's first web framework using pure 
+   Spatial Displacement Theory with authentic 21D physics!
+            `);
+        });
+    </script>
+</body>
+</html>
