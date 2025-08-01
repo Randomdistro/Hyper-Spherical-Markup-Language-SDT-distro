@@ -1,0 +1,191 @@
+<?hsml version="21.0" encoding="spherical-utf8"?>
+<hsml:sphere xmlns:hsml="https://hsml.sdt/2024" sdt="authentic" resonance="432">
+  
+  <!-- Four-corner steradian viewport with user following -->
+  <hsml:viewport 
+      steradian-corners="4"
+      interpolation="spherical-native"
+      bubble-radius="∞"
+      follow-user="true">
+    
+    <!-- Central zero-point resonator establishing the origin -->
+    <hsml:resonator
+        r="0" θ="180" φ="180"
+        frequency="432"
+        pattern="rrpt"
+        amplitude="3.0">
+      
+      <hsml:text size="2.0" color="#FFD700">
+        ⚬ ORIGIN ⚬
+      </hsml:text>
+      
+    </hsml:resonator>
+    
+    <!-- Primary orbital element in plasma state -->
+    <hsml:element 
+        id="plasma-primary"
+        r="15.0" θ="180" φ="90"
+        state="plasma"
+        resonance="864"
+        collision-radius="2.0"
+        zero-point="1.0"
+        sphere-r="15.0"
+        sphere-θ="180"
+        sphere-φ="90"
+        flux-density="0.8"
+        energy-potential="5.0">
+      
+      <hsml:text size="1.5" color="#FF6B35">
+        PLASMA ORB
+      </hsml:text>
+      
+      <!-- Orbital animation using pure spatial displacement -->
+      <hsml:animation
+          type="displacement"
+          duration="10.0"
+          easing="spherical-smooth"
+          repeat="infinite">
+        
+        <hsml:keyframe time="0.0" r="15.0" θ="180" φ="90"/>
+        <hsml:keyframe time="2.5" r="18.0" θ="225" φ="135"/>
+        <hsml:keyframe time="5.0" r="15.0" θ="270" φ="180"/>
+        <hsml:keyframe time="7.5" r="12.0" θ="315" φ="225"/>
+        <hsml:keyframe time="10.0" r="15.0" θ="360" φ="270"/>
+        
+      </hsml:animation>
+      
+    </hsml:element>
+    
+    <!-- Secondary quantum element -->
+    <hsml:element
+        id="quantum-secondary"
+        r="8.0" θ="135" φ="225"
+        state="quantum"
+        resonance="1296"
+        collision-radius="1.0"
+        energy-quantum="2.0">
+      
+      <hsml:text size="1.0" color="#00FFFF">
+        quantum node
+      </hsml:text>
+      
+    </hsml:element>
+    
+    <!-- Displacement field affecting nearby elements -->
+    <hsml:field
+        type="displacement"
+        r="0" θ="180" φ="180"
+        strength="3.0"
+        radius="25.0"
+        decay="quadratic">
+      
+      <!-- Field visualization -->
+      <hsml:element
+          r="25.0" θ="180" φ="180"
+          state="void"
+          visualization="steradian-field-lines"
+          opacity="0.3">
+      </hsml:element>
+      
+    </hsml:field>
+    
+    <!-- Resonance field creating harmonic interactions -->
+    <hsml:field
+        type="resonance"
+        r="10.0" θ="270" φ="180"
+        strength="2.0"
+        radius="15.0"
+        frequency="528">
+    </hsml:field>
+    
+    <!-- User representation as quantum entity -->
+    <hsml:user
+        collision="true"
+        matter-state="quantum"
+        resonance="528"
+        collision-radius="0.8">
+      
+      <!-- User interaction trigger -->
+      <hsml:trigger
+          shape="sphere"
+          size="3.0"
+          event="enter"
+          action="emit-resonance(frequency=432, amplitude=1.5)">
+      </hsml:trigger>
+      
+    </hsml:user>
+    
+    <!-- Spatial markers at cardinal points -->
+    <hsml:element r="30.0" θ="90" φ="180" state="solid">
+      <hsml:text size="0.8" color="#FFFFFF">NORTH</hsml:text>
+    </hsml:element>
+    
+    <hsml:element r="30.0" θ="270" φ="180" state="solid">
+      <hsml:text size="0.8" color="#FFFFFF">SOUTH</hsml:text>
+    </hsml:element>
+    
+    <hsml:element r="30.0" θ="180" φ="90" state="solid">
+      <hsml:text size="0.8" color="#FFFFFF">EAST</hsml:text>
+    </hsml:element>
+    
+    <hsml:element r="30.0" θ="180" φ="270" state="solid">
+      <hsml:text size="0.8" color="#FFFFFF">WEST</hsml:text>
+    </hsml:element>
+    
+    <!-- Demonstration of 21D state evolution -->
+    <hsml:element
+        id="state-demo"
+        r="20.0" θ="225" φ="315"
+        state="liquid"
+        resonance="432"
+        zero-point="1.0"
+        line-x="0.5" line-y="0.7"
+        plane-x="0.3" plane-y="0.6" plane-z="0.9"
+        sphere-r="20.0" sphere-θ="225" sphere-φ="315" sphere-t="0.0"
+        flux-density="0.4" flux-direction="1.0" flux-rotation="0.8"
+        energy-potential="3.0" energy-kinetic="1.5">
+      
+      <hsml:text size="1.2" color="#9966FF">
+        21D Evolution Demo
+      </hsml:text>
+      
+      <!-- State evolution animation -->
+      <hsml:animation
+          type="state-evolution"
+          duration="15.0"
+          target-level="energy"
+          repeat="infinite">
+        
+        <hsml:state-keyframe time="0.0" level="zero-point" intensity="1.0"/>
+        <hsml:state-keyframe time="3.0" level="line" intensity="1.5"/>
+        <hsml:state-keyframe time="6.0" level="plane" intensity="2.0"/>
+        <hsml:state-keyframe time="9.0" level="sphere" intensity="2.5"/>
+        <hsml:state-keyframe time="12.0" level="flux" intensity="3.0"/>
+        <hsml:state-keyframe time="15.0" level="energy" intensity="3.5"/>
+        
+      </hsml:animation>
+      
+    </hsml:element>
+    
+    <!-- Safety demonstration - angles automatically clamped -->
+    <hsml:element
+        r="5.0" θ="0" φ="400"
+        state="gas"
+        resonance="216">
+      
+      <hsml:comment type="physics">
+        This element demonstrates automatic angle safety:
+        θ="0" becomes θ="1" (minimum safe angle)
+        φ="400" becomes φ="361" (maximum safe angle)
+        No zero-division errors possible!
+      </hsml:comment>
+      
+      <hsml:text size="0.9" color="#66FF66">
+        Safety Demo
+      </hsml:text>
+      
+    </hsml:element>
+    
+  </hsml:viewport>
+  
+</hsml:sphere>
