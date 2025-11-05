@@ -1,0 +1,3 @@
+/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/portal/build/CMakeFiles/portal_example.dir
+/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/portal/build/CMakeFiles/edit_cache.dir
+/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/portal/build/CMakeFiles/rebuild_cache.dir

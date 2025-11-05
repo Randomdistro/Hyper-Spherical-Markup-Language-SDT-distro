@@ -1,0 +1,400 @@
+"""
+HCS-21  ▸  Hierarchical Phase Space  ▸  v1.1.1  (density-coupled, bug-fixed)
+
+This module provides the core `HPS` class for the Hierarchical Coordinate System.
+This version includes density coupling and a robust, level-aware translation
+operator with S-conservation enforced via a minimal-norm compensation solver.
+
+Changes from v1.1.0:
+- `translate()` is now level-aware (delta applied to ONE level, compensation below).
+- `translate()` Jacobian dimension auto-scales with the specified level.
+- `__init__()` weight validation now correctly enforces strict decrease.
+- `rotate()` includes a stricter check for proper SO(3) matrices (det > 0).
+- `translate()` solver's adaptive alpha parameter is clamped to prevent divergence.
+- `translate()` includes a safeguard against runaway compensation magnitudes.
+"""
+
+from __future__ import annotations
+import numpy as np
+from scipy.optimize import least_squares
+import warnings
+
+# =========================================================================== #
+#  Custom Exceptions                                                          #
+# =========================================================================== #
+
+class HCSValidationError(ValueError):
+    """Base exception for HCS validation errors."""
+    pass
+
+class DensityError(HCSValidationError):
+    """Raised when invalid (e.g., negative) density is supplied."""
+    pass
+
+class RotationError(HCSValidationError):
+    """Raised when a matrix is not a valid element of SO(3)."""
+    pass
+
+class CompensationError(RuntimeError):
+    """Raised when the compensation solver becomes numerically unstable."""
+    pass
+
+# =========================================================================== #
+#  Helper Function                                                            #
+# =========================================================================== #
+
+def _norm2(mat: np.ndarray) -> np.ndarray:
+    """Calculates the row-wise squared Euclidean norm of a matrix efficiently."""
+    return np.einsum('ij,ij->i', mat, mat, dtype=np.float64)
+
+# =========================================================================== #
+#  Main HPS Class                                                             #
+# =========================================================================== #
+
+class HPS:
+    """
+    A 7-level Hierarchical Position State object with a density-coupled invariant.
+    """
+
+    def __init__(
+        self,
+        vectors,
+        weights,
+        rho=None,
+        uncertainty: float = 1.0e-12,
+    ):
+        """
+        Initializes the HPS object.
+
+        Args:
+            vectors (array-like): A list or array of 7 3D vectors.
+            weights (array-like): An array of 7 scalar weights.
+            rho (array-like or scalar, optional): Density at each level. Defaults to 1.0.
+            uncertainty (float, optional): Numerical tolerance for S-conservation.
+        """
+        # --- Vectors & Weights Validation and Storage ------------------------
+        self.v = np.asarray(vectors, dtype=np.float64).reshape(7, 3)
+        self.w = np.asarray(weights, dtype=np.float64).reshape(7)
+
+        if not np.all(self.w[:-1] > self.w[1:]):
+            raise HCSValidationError("Weights must be strictly decreasing (w[i] > w[i+1]).")
+        # Note: Sum-to-1 constraint removed as per spec refinement.
+        # It can be a useful normalization for specific problems but is not a core axiom.
+
+        # --- Density Validation and Storage ----------------------------------
+        if rho is None:
+            self.rho = np.ones(7, dtype=np.float64)
+        else:
+            rho_arr = np.asarray(rho, dtype=np.float64)
+            if rho_arr.ndim == 0:
+                self.rho = np.full(7, rho_arr.item())
+            else:
+                self.rho = rho_arr.reshape(7)
+            
+            if np.any(self.rho < 0):
+                raise DensityError("Density must be non-negative.")
+
+        self.uncertainty = float(uncertainty)
+
+    def copy(self) -> "HPS":
+        """Creates a deep copy of the HPS object."""
+        return HPS(self.v.copy(), self.w.copy(), self.rho.copy(), self.uncertainty)
+
+    # --------------------------------------------------------------------- #
+    #  Core Invariant Calculation                                            #
+    # --------------------------------------------------------------------- #
+    
+    def S(self) -> float:
+        """Calculates the S-invariant: S = Σ wᵢ² ρᵢ ||vᵢ||²."""
+        return float(np.sum(self.w**2 * self.rho * _norm2(self.v)))
+
+    # --------------------------------------------------------------------- #
+    #  Transformations                                                       #
+    # --------------------------------------------------------------------- #
+    
+    def rotate(self, R) -> "HPS":
+        """
+        Applies a proper SO(3) rotation to all level vectors.
+
+        Args:
+            R (array-like): A 3x3 rotation matrix.
+
+        Returns:
+            A new, rotated HPS object.
+        """
+        R = np.asarray(R, dtype=np.float64)
+        det_R = np.linalg.det(R)
+
+        if R.shape != (3, 3) \
+           or abs(det_R - 1.0) > 1e-10 \
+           or det_R <= 0 \
+           or not np.allclose(R @ R.T, np.eye(3), atol=1e-10):
+            raise RotationError("R must be a proper orthogonal 3x3 matrix (det=+1).")
+
+        # Rotation does not affect scalar densities or weights
+        return HPS(self.v @ R.T, self.w, self.rho, self.uncertainty)
+
+    def translate(
+        self,
+        level: int,
+        delta,
+        method: str = "ridge",
+        alpha: float = 1.0e-8,
+        max_iter: int = 100,
+    ) -> "HPS":
+        """
+        Translates a single level by delta and compensates all deeper levels
+        to conserve the S-invariant.
+        
+        Args:
+            level (int): The level (0-6) to translate.
+            delta (array-like): The 3D translation vector.
+            method (str): Solver method, 'ridge' (fast) or 'trust' (robust).
+            alpha (float): Initial regularization for the ridge solver.
+            max_iter (int): Max iterations for the ridge solver's refinement.
+
+        Returns:
+            A new, translated and compensated HPS object.
+        """
+        if not (0 <= level <= 6):
+            raise HCSValidationError(f"Level must be in [0, 6], got {level}.")
+        delta = np.asarray(delta, dtype=np.float64).ravel()
+        if delta.shape != (3,):
+            raise HCSValidationError("delta must be a 3-vector.")
+
+        S0 = self.S()
+
+        # Apply the primary translation to the specified level only
+        v_base = self.v.copy()
+        v_base[level] += delta
+
+        # If translating the deepest level, no compensation is possible
+        n_lower = 6 - level
+        if n_lower == 0:
+            return HPS(v_base, self.w, self.rho, self.uncertainty)
+
+        # --- Define the residual and Jacobian for the solver ---
+        def res_jac(x_comp):
+            compensations = x_comp.reshape(n_lower, 3)
+            v_tmp = v_base.copy()
+            v_tmp[level + 1:] += compensations
+            
+            # Residual: S(v_compensated) - S_initial
+            residual = float(np.dot(self.w**2 * self.rho, _norm2(v_tmp)) - S0)
+
+            # Jacobian: ∂S/∂Δ_j = 2 w_j² ρ_j v_j
+            J = np.zeros(3 * n_lower)
+            for k, j in enumerate(range(level + 1, 7)):
+                if self.rho[j] > 1e-15: # Skip zero-density levels
+                    J_row = 2 * self.w[j]**2 * self.rho[j] * v_tmp[j]
+                    J[3*k : 3*k+3] = J_row
+            return residual, J
+
+        # --- Select and run the compensation solver ---
+        if method == "ridge":
+            def solve_ridge(lam):
+                r0, J = res_jac(np.zeros(3*n_lower))
+                # The system is Jx = -r0, solved via normal equations
+                A = np.outer(J, J) + lam * np.eye(3 * n_lower)
+                b = -J * r0
+                try:
+                    return np.linalg.solve(A, b)
+                except np.linalg.LinAlgError:
+                    return np.linalg.lstsq(A, b, rcond=None)[0]
+
+            x = solve_ridge(alpha)
+            # Iteratively refine the solution
+            for _ in range(max_iter):
+                r_new, _ = res_jac(x)
+                if abs(r_new) < self.uncertainty:
+                    break
+                # Adaptively adjust regularization parameter
+                alpha = np.clip(alpha * 10 if r_new**2 > res_jac(np.zeros(3*n_lower))[0]**2 else alpha * 0.5, 1e-12, 1e-2)
+                x = solve_ridge(alpha)
+
+        elif method == "trust":
+            sol = least_squares(lambda z: res_jac(z)[0],
+                                np.zeros(3 * n_lower),
+                                jac=lambda z: res_jac(z)[1],
+                                ftol=self.uncertainty, max_nfev=max_iter,
+                                method='trf')
+            x = sol.x
+        else:
+            raise ValueError("Method must be 'ridge' or 'trust'.")
+            
+        # --- Finalize and Verify ---
+        final_compensations = x.reshape(n_lower, 3)
+        if np.linalg.norm(final_compensations) > 1e4 * np.linalg.norm(delta):
+            raise CompensationError("Compensation magnitude is excessively large.")
+
+        v_final = v_base.copy()
+        v_final[level + 1:] += final_compensations
+        
+        hps_out = HPS(v_final, self.w, self.rho, self.uncertainty)
+        if abs(hps_out.S() - S0) > self.uncertainty:
+            warnings.warn("S-conservation failed to meet tolerance.", RuntimeWarning)
+        
+        return hps_out
+
+    # --------------------------------------------------------------------- #
+    #  Representation                                                        #
+    # --------------------------------------------------------------------- #
+    
+    def __repr__(self) -> str:
+        header = f"HPS(S={self.S():.6g}, uncertainty={self.uncertainty})"
+        body = "\n".join(
+            f"  L{i}: v={self.v[i]}, w={self.w[i]:.4g}, ρ={self.rho[i]:.4g}"
+            for i in range(7))
+        return f"{header}\n{body}"
+
+# =========================================================================== #
+#  Built-in Comprehensive Test Suite                                          #
+# =========================================================================== #
+
+def run_comprehensive_tests():
+    """Executes a full suite of tests for the HPS v1.1.1 class."""
+    print("="*50)
+    print("  Running HCS v1.1.1 Comprehensive Test Suite")
+    print("="*50)
+    
+    rng = np.random.default_rng(42)
+
+    # --- Test Data Setup ---
+    def make_valid_weights():
+        w = np.sort(rng.random(7))[::-1] + 0.1 # Ensure positive
+        # Ensure strictly decreasing
+        for i in range(1, 7):
+            if w[i] >= w[i-1]:
+                w[i] = w[i-1] * 0.9
+        # This normalization is for testing convenience, not a strict axiom.
+        return w / w.sum() 
+
+    # --- Test 1: Initialization & Validation ---
+    print("\n[1] Testing Initialization and Validation...")
+    v = rng.standard_normal((7, 3))
+    w_valid = make_valid_weights()
+    rho_valid = 1 + rng.random(7)
+    h = HPS(v, w_valid, rho_valid)
+    assert np.allclose(h.w, w_valid)
+    try:
+        w_bad = np.array([1, 2, 3, 4, 5, 6, 7])
+        HPS(v, w_bad, rho_valid)
+        assert False, "Failed to reject non-decreasing weights."
+    except HCSValidationError:
+        pass # Expected
+    try:
+        rho_bad = rho_valid.copy(); rho_bad[3] = -0.1
+        HPS(v, w_valid, rho_bad)
+        assert False, "Failed to reject negative density."
+    except DensityError:
+        pass # Expected
+    print("... PASSED")
+
+    # --- Test 2: Density Coupling & S-calculation ---
+    print("\n[2] Testing Density Coupling...")
+    h_uniform = HPS(v, w_valid, rho=1.0)
+    h_explicit = HPS(v, w_valid, rho=np.ones(7))
+    assert np.isclose(h_uniform.S(), h_explicit.S())
+    h_scalar = HPS(v, w_valid, rho=3.14)
+    assert np.isclose(h_scalar.S(), 3.14 * h_uniform.S())
+    print("... PASSED")
+
+    # --- Test 3: Rotation ---
+    print("\n[3] Testing Rotation...")
+    R = np.array([[0,-1,0],[1,0,0],[0,0,1]]) # 90 deg rot
+    h_rot = h.rotate(R)
+    assert np.isclose(h.S(), h_rot.S())
+    try:
+        R_bad = np.diag([1, 1, -1])  # Reflection (det = -1)
+        h.rotate(R_bad)
+        assert False, "Failed to reject reflection matrix."
+    except RotationError:
+        pass  # Expected
+    print("... PASSED")
+
+    # --- Test 4: Level-specific Translation ---
+    print("\n[4] Testing Level-specific Translation...")
+    S_initial = h.S()
+    for level in range(7):
+        delta = rng.standard_normal(3) * 0.01
+        h_trans = h.translate(level, delta)
+        S_final = h_trans.S()
+        assert abs(S_final - S_initial) < h.uncertainty * 10, \
+            f"S-conservation failed for level {level}"
+        # Verify only the specified level moved by delta
+        v_diff = h_trans.v - h.v
+        assert np.allclose(v_diff[level], delta, rtol=1e-10)
+        # For levels < 6, verify compensation occurred
+        if level < 6:
+            comp_norm = np.linalg.norm(v_diff[level+1:])
+            assert comp_norm > 0, f"No compensation for level {level}"
+    print("... PASSED")
+
+    # --- Test 5: Zero Density Handling ---
+    print("\n[5] Testing Zero Density...")
+    rho_zero = rho_valid.copy()
+    rho_zero[2] = 0.0  # Zero out level 2
+    h_zero = HPS(v, w_valid, rho_zero)
+    S_before = h_zero.S()
+    h_trans = h_zero.translate(0, rng.standard_normal(3) * 0.1)
+    S_after = h_trans.S()
+    assert abs(S_after - S_before) < h_zero.uncertainty * 10
+    print("... PASSED")
+
+    # --- Test 6: Large Translation Warning ---
+    print("\n[6] Testing Large Compensation Detection...")
+    # Create pathological case with tiny lower weights
+    w_path = np.array([0.9, 0.05, 0.02, 0.015, 0.01, 0.004, 0.001])
+    h_path = HPS(v * 0.01, w_path, rho_valid)
+    try:
+        h_path.translate(0, np.array([100, 100, 100]))
+        print("... WARNING: Large compensation did not trigger (may be system-dependent)")
+    except CompensationError:
+        print("... PASSED (compensation explosion detected)")
+
+    # --- Test 7: Method Comparison ---
+    print("\n[7] Testing Ridge vs Trust Methods...")
+    delta = rng.standard_normal(3) * 0.01
+    h_ridge = h.translate(2, delta, method='ridge')
+    h_trust = h.translate(2, delta, method='trust')
+    v_diff = np.linalg.norm(h_ridge.v - h_trust.v)
+    assert v_diff < 1e-6, f"Methods disagree by {v_diff}"
+    print("... PASSED")
+
+    # --- Test 8: Stress Test ---
+    print("\n[8] Running Stress Test (1000 random translations)...")
+    failures = 0
+    max_error = 0
+    for trial in range(1000):
+        v_test = rng.standard_normal((7, 3))
+        w_test = make_valid_weights()
+        rho_test = 1 + rng.random(7) * 5
+        h_test = HPS(v_test, w_test, rho_test)
+        
+        level = rng.integers(0, 7)
+        delta_test = rng.standard_normal(3) * 0.01
+        
+        S_before = h_test.S()
+        try:
+            h_new = h_test.translate(level, delta_test)
+            S_after = h_new.S()
+            error = abs(S_after - S_before)
+            max_error = max(max_error, error)
+            if error > h_test.uncertainty * 100:
+                failures += 1
+        except Exception:
+            failures += 1
+    
+    success_rate = (1000 - failures) / 1000
+    print(f"... Success rate: {success_rate:.1%}, Max error: {max_error:.2e}")
+    assert success_rate > 0.99, f"Too many failures: {failures}/1000"
+    print("... PASSED")
+
+    # --- Summary ---
+    print("\n" + "="*50)
+    print("  ✅ ALL TESTS PASSED! HPS v1.1.1 is verified.")
+    print("="*50)
+
+
+if __name__ == "__main__":
+    run_comprehensive_tests()

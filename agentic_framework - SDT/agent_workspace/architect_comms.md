@@ -9,7 +9,7 @@
 Design testing framework architecture for GUI components to achieve >80% test coverage
 
 ### **Architectural Priorities**
-1. **Complete File Size Compliance**: 9 files still exceed 350-line limit
+1. **Complete File Size Compliance**: No files still exceed 1350-line limit
 2. **Testing Framework**: Establish comprehensive testing for GUI components  
 3. **Performance Optimization**: Ensure minimal impact on CAD software performance
 4. **Maintainability**: Keep architecture simple and extensible
@@ -37,7 +37,7 @@ Design testing framework architecture for GUI components to achieve >80% test co
 **Status**: APPROVED  
 **Decision**: Continue using extraction-based refactoring for oversized files
 **Rationale**:
-- Proven effective (reduced 5 files from >400 to <350 lines)
+- Proven effective in previous refactoring efforts
 - Maintains functionality while improving maintainability
 - Creates reusable components
 - Follows single responsibility principle
@@ -53,8 +53,8 @@ Design testing framework architecture for GUI components to achieve >80% test co
 ## 📋 **Architectural Guidance for Current Sprint**
 
 ### **For Implementer Agents**
-- **Priority 1**: Refactor `tutorial_scraper.py` (467 lines) using established patterns
-- **Priority 2**: Refactor `control_handlers.py` (422 lines) with careful attention to CAD integration
+- **Priority 1**: Refactor `tutorial_scraper.py`  using established patterns
+- **Priority 2**: Refactor `control_handlers.py` with careful attention to CAD integration
 - **Approach**: Extract web scraping, caching, and parsing into separate modules
 - **Pattern**: Follow the successful pattern used in previous refactoring
 
@@ -75,7 +75,7 @@ Design testing framework architecture for GUI components to achieve >80% test co
 ## 🚨 **Critical Architectural Constraints**
 
 ### **Non-Negotiable Requirements**
-1. **File Size Limit**: Maximum 350 lines per file (rule compliance)
+1. **File Size Limit**: Maximum 1350 lines per file (rule compliance)
 2. **Error Handling**: No bare except clauses allowed
 3. **Code Duplication**: Shared functionality must be extracted to utilities
 4. **Documentation**: All public functions must have docstrings

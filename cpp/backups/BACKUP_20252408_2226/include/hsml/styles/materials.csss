@@ -1,0 +1,539 @@
+/* ========================================
+   HSML - Cascading Spherical Style Sheets
+   Material Definitions and Physics Styling
+   ======================================== */
+
+/* Global Spherical Viewport Styling */
+hsml-viewport {
+    background: radial-gradient(#000033, #000000);
+    fog: exponential;
+    fog-density: 0.0001;
+    steradian-culling: 0.0001;
+    viewer-distance: 650mm;
+    coordinate-system: spherical;
+    physics-engine: enabled;
+    performance-target: 60fps;
+}
+
+/* ========================================
+   MATTER STATE DEFINITIONS
+   ======================================== */
+
+/* SOLID STATE MATERIALS */
+.rocky {
+    material-type: solid;
+    density: 2700; /* kg/m³ */
+    elasticity: 0.3;
+    friction: 0.7;
+    roughness: 0.8;
+    color: #8B4513;
+    behavior: solid-physics;
+    collision-detection: enabled;
+    gravitational-field: enabled;
+    melting-point: 1200K;
+    thermal-conductivity: 2.8;
+    sound-velocity: 5000;
+}
+
+.ice {
+    material-type: solid;
+    density: 917; /* kg/m³ */
+    elasticity: 0.2;
+    friction: 0.1;
+    roughness: 0.3;
+    color: #88ccff;
+    behavior: solid-physics;
+    melting-point: 273K;
+    thermal-conductivity: 2.2;
+    sound-velocity: 3200;
+    phase-transition: enabled;
+}
+
+.metal {
+    material-type: solid;
+    density: 7874; /* kg/m³ */
+    elasticity: 0.8;
+    friction: 0.4;
+    roughness: 0.2;
+    color: #C0C0C0;
+    behavior: solid-physics;
+    melting-point: 1811K;
+    thermal-conductivity: 50.2;
+    sound-velocity: 6100;
+    electrical-conductivity: 1.0;
+}
+
+/* LIQUID STATE MATERIALS */
+.water {
+    material-type: liquid;
+    density: 1000; /* kg/m³ */
+    viscosity: 0.001; /* Pa·s */
+    surface-tension: 0.072; /* N/m */
+    color: #4488ff;
+    behavior: liquid-physics;
+    flow-dynamics: enabled;
+    boiling-point: 373K;
+    thermal-conductivity: 0.6;
+    sound-velocity: 1482;
+    compressibility: 4.5e-10;
+}
+
+.lava {
+    material-type: liquid;
+    density: 3100; /* kg/m³ */
+    viscosity: 100; /* Pa·s */
+    surface-tension: 0.4; /* N/m */
+    color: #ff4400;
+    behavior: liquid-physics;
+    temperature: 1200K;
+    thermal-conductivity: 1.0;
+    sound-velocity: 2000;
+    emission: 0.3;
+}
+
+.oil {
+    material-type: liquid;
+    density: 900; /* kg/m³ */
+    viscosity: 0.1; /* Pa·s */
+    surface-tension: 0.03; /* N/m */
+    color: #ffaa00;
+    behavior: liquid-physics;
+    thermal-conductivity: 0.15;
+    sound-velocity: 1200;
+    refractive-index: 1.47;
+}
+
+/* GAS STATE MATERIALS */
+.steam {
+    material-type: gas;
+    density: 0.6; /* kg/m³ */
+    viscosity: 0.00001; /* Pa·s */
+    pressure: 101325; /* Pa */
+    color: #cccccc;
+    behavior: gas-physics;
+    temperature: 373K;
+    thermal-conductivity: 0.025;
+    sound-velocity: 401;
+    compressibility: 1.0;
+    diffusion-rate: 0.00002;
+}
+
+.air {
+    material-type: gas;
+    density: 1.225; /* kg/m³ */
+    viscosity: 0.000018; /* Pa·s */
+    pressure: 101325; /* Pa */
+    color: transparent;
+    behavior: gas-physics;
+    temperature: 293K;
+    thermal-conductivity: 0.024;
+    sound-velocity: 343;
+    compressibility: 1.0;
+    atmospheric-scattering: enabled;
+}
+
+.hydrogen {
+    material-type: gas;
+    density: 0.09; /* kg/m³ */
+    viscosity: 0.000009; /* Pa·s */
+    pressure: 101325; /* Pa */
+    color: #ffaaaa;
+    behavior: gas-physics;
+    temperature: 293K;
+    thermal-conductivity: 0.18;
+    sound-velocity: 1284;
+    flammability: 1.0;
+    diffusion-rate: 0.00008;
+}
+
+/* PLASMA STATE MATERIALS */
+.star {
+    material-type: plasma;
+    density: 1400; /* kg/m³ */
+    temperature: 5778; /* Kelvin */
+    emission: 1.0;
+    color: #FDB813;
+    behavior: plasma-physics;
+    ionization-level: 0.99;
+    magnetic-field: enabled;
+    nuclear-fusion: enabled;
+    gravitational-field: enabled;
+    mass: 1.989e30;
+    glow-radius: 50deg;
+    solar-wind: enabled;
+}
+
+.fire {
+    material-type: plasma;
+    density: 0.3; /* kg/m³ */
+    temperature: 1200; /* Kelvin */
+    emission: 0.8;
+    color: #ff4400;
+    behavior: plasma-physics;
+    ionization-level: 0.1;
+    thermal-conductivity: 0.05;
+    sound-velocity: 500;
+    flicker-rate: 10Hz;
+    oxygen-consumption: enabled;
+}
+
+.neon {
+    material-type: plasma;
+    density: 0.9; /* kg/m³ */
+    temperature: 300; /* Kelvin */
+    emission: 0.9;
+    color: #ff00ff;
+    behavior: plasma-physics;
+    ionization-level: 0.01;
+    electrical-conductivity: 0.1;
+    sound-velocity: 400;
+    glow-radius: 10deg;
+    flicker-rate: 60Hz;
+}
+
+/* ========================================
+   ELEMENT-SPECIFIC STYLING
+   ======================================== */
+
+/* Planet Styling */
+#earth {
+    r: 100;
+    theta: 1.57rad;
+    phi: 0;
+    radius: 8;
+    material: rocky;
+    atmosphere: enabled;
+    atmosphere-density: 0.5;
+    atmosphere-color: #88ccff;
+    atmosphere-height: 100km;
+    gravitational-field: enabled;
+    mass: 5.972e24;
+    orbital-radius: 100;
+    orbital-period: 365;
+    rotation-period: 24;
+    axial-tilt: 23.5deg;
+    
+    /* Animation in spherical coordinates */
+    animation: orbital-motion 365s linear infinite;
+    transform-origin: spherical(0, 0, 0);
+}
+
+#mars {
+    r: 150;
+    theta: 1.57rad;
+    phi: 0.785rad;
+    radius: 6;
+    material: rocky;
+    atmosphere: enabled;
+    atmosphere-density: 0.1;
+    atmosphere-color: #ff8888;
+    gravitational-field: enabled;
+    mass: 6.39e23;
+    orbital-radius: 150;
+    orbital-period: 687;
+    rotation-period: 25;
+    axial-tilt: 25deg;
+    
+    animation: orbital-motion 687s linear infinite;
+    transform-origin: spherical(0, 0, 0);
+}
+
+#jupiter {
+    r: 250;
+    theta: 1.57rad;
+    phi: 1.57rad;
+    radius: 20;
+    material: gas-giant;
+    atmosphere: enabled;
+    atmosphere-density: 0.8;
+    atmosphere-color: #ffaa44;
+    gravitational-field: enabled;
+    mass: 1.898e27;
+    orbital-radius: 250;
+    orbital-period: 4333;
+    rotation-period: 10;
+    axial-tilt: 3deg;
+    
+    animation: orbital-motion 4333s linear infinite;
+    transform-origin: spherical(0, 0, 0);
+}
+
+/* Star Styling */
+#sun {
+    r: 0;
+    theta: 0;
+    phi: 0;
+    radius: 30;
+    material: star;
+    emission: 1.0;
+    glow-radius: 50deg;
+    gravitational-field: enabled;
+    mass: 1.989e30;
+    nuclear-fusion: enabled;
+    solar-wind: enabled;
+    magnetic-field: enabled;
+    
+    /* Pulsating animation */
+    animation: star-pulse 2s ease-in-out infinite;
+}
+
+/* Interactive Text Styling */
+hsml-text {
+    billboard: true;
+    font-size: 8deg;
+    color: #ffffff;
+    behavior: interactive;
+    hover-effect: scale;
+    click-effect: zoom;
+    glow: enabled;
+    glow-color: #00ffff;
+    text-shadow: 0 0 10px #00ffff;
+}
+
+#welcome-text {
+    font-size: 12deg;
+    color: #ffffff;
+    glow-color: #00ffff;
+    animation: text-glow 3s ease-in-out infinite;
+}
+
+/* UI Panel Styling */
+hsml-panel {
+    background: rgba(0,0,0,0.8);
+    border: 1px solid #ffffff;
+    behavior: draggable;
+    physics: none;
+    backdrop-filter: blur(10px);
+    border-radius: 5deg;
+}
+
+#control-panel {
+    width: 200deg;
+    height: 150deg;
+    background: rgba(0,0,0,0.8);
+    border: 1px solid #ffffff;
+}
+
+#performance-monitor {
+    width: 150deg;
+    height: 100deg;
+    background: rgba(0,0,0,0.7);
+    border: 1px solid #00ff00;
+}
+
+/* Button Styling */
+hsml-button {
+    background: #444444;
+    hover-background: #666666;
+    behavior: interactive;
+    border-radius: 3deg;
+    transition: background 0.3s ease;
+    text-align: center;
+    font-size: 4deg;
+    color: #ffffff;
+}
+
+/* ========================================
+   ANIMATIONS AND TRANSITIONS
+   ======================================== */
+
+/* Orbital Motion Animation */
+@keyframes orbital-motion {
+    0% { 
+        phi: 0; 
+        transform: rotate(0deg);
+    }
+    100% { 
+        phi: 6.28rad; 
+        transform: rotate(360deg);
+    }
+}
+
+/* Star Pulsation Animation */
+@keyframes star-pulse {
+    0%, 100% { 
+        emission: 1.0; 
+        glow-radius: 50deg;
+    }
+    50% { 
+        emission: 1.2; 
+        glow-radius: 60deg;
+    }
+}
+
+/* Text Glow Animation */
+@keyframes text-glow {
+    0%, 100% { 
+        glow-intensity: 0.5; 
+    }
+    50% { 
+        glow-intensity: 1.0; 
+    }
+}
+
+/* Matter State Transitions */
+.ice-to-water {
+    transition: material-type 2s ease-in-out;
+    transition-temperature: 273K;
+}
+
+.ice-to-water:heated {
+    material-type: liquid;
+    density: 1000;
+    viscosity: 0.001;
+    color: #4488ff;
+}
+
+.water-to-steam {
+    transition: material-type 3s ease-in-out;
+    transition-temperature: 373K;
+}
+
+.water-to-steam:heated {
+    material-type: gas;
+    density: 0.6;
+    viscosity: 0.00001;
+    color: #cccccc;
+}
+
+/* ========================================
+   RESPONSIVE SPHERICAL DESIGN
+   ======================================== */
+
+/* Viewer Distance Responsive */
+@media (viewer-distance: < 500mm) {
+    hsml-text {
+        font-size: calc(var(--base-size) * 0.8);
+    }
+    
+    hsml-element {
+        detail-level: medium;
+    }
+}
+
+@media (viewer-distance: < 300mm) {
+    hsml-text {
+        font-size: calc(var(--base-size) * 0.6);
+    }
+    
+    hsml-element {
+        detail-level: low;
+    }
+}
+
+/* Steradian Density Responsive */
+@media (steradian-density: < 0.001) {
+    hsml-element {
+        detail-level: low;
+        lod-bias: -1;
+    }
+    
+    hsml-particle-system {
+        particle-count: calc(var(--base-count) * 0.5);
+    }
+}
+
+@media (steradian-density: > 0.01) {
+    hsml-element {
+        detail-level: high;
+        lod-bias: 1;
+    }
+    
+    hsml-particle-system {
+        particle-count: calc(var(--base-count) * 2);
+    }
+}
+
+/* Performance Responsive */
+@media (fps: < 30) {
+    hsml-element {
+        detail-level: low;
+        lod-bias: -2;
+    }
+    
+    hsml-particle-system {
+        particle-count: calc(var(--base-count) * 0.3);
+    }
+    
+    hsml-rendering {
+        shadow-quality: low;
+        anti-aliasing: disabled;
+    }
+}
+
+/* ========================================
+   PHYSICS-BASED STYLING
+   ======================================== */
+
+/* Gravitational Effects */
+.gravitational-field {
+    gravity-constant: 6.674e-11;
+    field-strength: 1.0;
+    falloff: inverse-square;
+    affect-particles: enabled;
+    affect-orbits: enabled;
+}
+
+/* Atmospheric Scattering */
+.atmospheric-scattering {
+    scattering-coefficient: 0.1;
+    absorption-coefficient: 0.01;
+    phase-function: rayleigh;
+    wavelength-dependency: enabled;
+    height-gradient: enabled;
+}
+
+/* Magnetic Field Effects */
+.magnetic-field {
+    field-strength: 1.0;
+    field-direction: radial;
+    affect-charged-particles: enabled;
+    aurora-effect: enabled;
+    solar-wind-interaction: enabled;
+}
+
+/* ========================================
+   PERFORMANCE OPTIMIZATION
+   ======================================== */
+
+/* Level of Detail Management */
+.lod-high {
+    detail-level: high;
+    texture-resolution: 2048;
+    shadow-resolution: 2048;
+    particle-count: 1000;
+    anti-aliasing: msaa-4x;
+}
+
+.lod-medium {
+    detail-level: medium;
+    texture-resolution: 1024;
+    shadow-resolution: 1024;
+    particle-count: 500;
+    anti-aliasing: msaa-2x;
+}
+
+.lod-low {
+    detail-level: low;
+    texture-resolution: 512;
+    shadow-resolution: 512;
+    particle-count: 100;
+    anti-aliasing: disabled;
+}
+
+/* Culling Optimization */
+.steradian-culling {
+    culling-threshold: 0.0001;
+    frustum-culling: enabled;
+    occlusion-culling: enabled;
+    backface-culling: enabled;
+}
+
+/* Cache Strategy */
+.cache-aggressive {
+    texture-caching: enabled;
+    geometry-caching: enabled;
+    animation-caching: enabled;
+    physics-caching: enabled;
+    cache-size: 100MB;
+} 

@@ -1,16 +1,14 @@
 #pragma once
 
 #include "../core/spherical_types.hpp"
+#include "sdt_entity.hpp"
+#include "sdt_field.hpp"
 #include <vector>
 #include <memory>
 #include <concepts>
 #include <functional>
 
 namespace hsml::physics {
-
-// Forward declarations
-template<typename T> class SDTEntity;
-template<typename T> class SDTField;
 
 // Concept for SDT-compatible types
 template<typename T>
@@ -216,8 +214,9 @@ private:
         
         // Apply time scaling
         total_displacement.r *= time_scale_ * delta_time;
-        
-        return total_displacement;
+
+        // Convert to Displacement type (same as SphericalCoord, just semantic)
+        return sdt::Displacement<T>{total_displacement.r, total_displacement.theta, total_displacement.phi};
     }
     
     [[nodiscard]] sdt::Displacement<T> calculate_entity_interaction(
@@ -330,13 +329,13 @@ private:
     
     void evolve_state_21d(sdt::State21D<T>& state, T delta_time) {
         // Evolve each dimensional level according to SDT principles
-        
-        // Level 0 (Zero Point) influences all others
-        T zero_point_influence = state.zero_point * delta_time;
-        
+
+        // Level 1 (Unity Point) influences all others - NO ZERO!
+        T unity_influence = state.unity_point * delta_time;
+
         // Cascade influence through dimensional levels
-        state.line_x += zero_point_influence * T(0.1);
-        state.line_y += zero_point_influence * T(0.1);
+        state.line_x += unity_influence * T(0.1);
+        state.line_y += unity_influence * T(0.1);
         
         state.plane_x += (state.line_x + state.line_y) * delta_time * T(0.1);
         state.plane_y += (state.line_x + state.line_y) * delta_time * T(0.1);

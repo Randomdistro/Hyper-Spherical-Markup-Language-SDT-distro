@@ -1,0 +1,123 @@
+Start testing: Nov 05 14:48 AEDT
+----------------------------------------------------------
+1/6 Testing: spherical_math
+1/6 Test: spherical_math
+Command: "/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build/hsml_tests" "[spherical]"
+Directory: /mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build
+"spherical_math" start time: Nov 05 14:48 AEDT
+Output:
+----------------------------------------------------------
+Filters: [spherical]
+Randomness seeded to: 3716562272
+===============================================================================
+All tests passed (14 assertions in 5 test cases)
+
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"spherical_math" end time: Nov 05 14:48 AEDT
+"spherical_math" time elapsed: 00:00:00
+----------------------------------------------------------
+
+2/6 Testing: sdt_physics
+2/6 Test: sdt_physics
+Command: "/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build/hsml_tests" "[physics]"
+Directory: /mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build
+"sdt_physics" start time: Nov 05 14:48 AEDT
+Output:
+----------------------------------------------------------
+Filters: [physics]
+Randomness seeded to: 4191074086
+===============================================================================
+All tests passed (7 assertions in 4 test cases)
+
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"sdt_physics" end time: Nov 05 14:48 AEDT
+"sdt_physics" time elapsed: 00:00:00
+----------------------------------------------------------
+
+3/6 Testing: parser
+3/6 Test: parser
+Command: "/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build/hsml_tests" "[parser]"
+Directory: /mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build
+"parser" start time: Nov 05 14:48 AEDT
+Output:
+----------------------------------------------------------
+Filters: [parser]
+Randomness seeded to: 3521199839
+===============================================================================
+All tests passed (2 assertions in 2 test cases)
+
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"parser" end time: Nov 05 14:48 AEDT
+"parser" time elapsed: 00:00:00
+----------------------------------------------------------
+
+4/6 Testing: viewport
+4/6 Test: viewport
+Command: "/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build/hsml_tests" "[viewport]"
+Directory: /mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build
+"viewport" start time: Nov 05 14:48 AEDT
+Output:
+----------------------------------------------------------
+Filters: [viewport]
+Randomness seeded to: 3680340794
+===============================================================================
+All tests passed (11 assertions in 6 test cases)
+
+<end of output>
+Test time =   0.05 sec
+----------------------------------------------------------
+Test Passed.
+"viewport" end time: Nov 05 14:48 AEDT
+"viewport" time elapsed: 00:00:00
+----------------------------------------------------------
+
+5/6 Testing: safety
+5/6 Test: safety
+Command: "/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build/hsml_tests" "[safety]"
+Directory: /mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build
+"safety" start time: Nov 05 14:48 AEDT
+Output:
+----------------------------------------------------------
+Filters: [safety]
+Randomness seeded to: 3433663084
+===============================================================================
+All tests passed (26 assertions in 4 test cases)
+
+<end of output>
+Test time =   0.06 sec
+----------------------------------------------------------
+Test Passed.
+"safety" end time: Nov 05 14:48 AEDT
+"safety" time elapsed: 00:00:00
+----------------------------------------------------------
+
+6/6 Testing: runtime
+6/6 Test: runtime
+Command: "/mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build/hsml_tests" "[runtime]"
+Directory: /mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/cpp/build
+"runtime" start time: Nov 05 14:48 AEDT
+Output:
+----------------------------------------------------------
+Filters: [runtime]
+Randomness seeded to: 2873774249
+===============================================================================
+All tests passed (20 assertions in 4 test cases)
+
+<end of output>
+Test time =   0.08 sec
+----------------------------------------------------------
+Test Passed.
+"runtime" end time: Nov 05 14:48 AEDT
+"runtime" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 05 14:48 AEDT

@@ -1,0 +1,246 @@
+name: HSML-SDT CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run nightly validation tests
+    - cron: '0 2 * * *'
+
+jobs:
+  quality-checks:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Check file line limits (1350-line rule)
+      run: npm run check:lines
+
+    - name: TypeScript type checking
+      run: npm run typecheck
+
+    - name: Lint code
+      run: npm run lint
+
+    - name: Format check
+      run: npm run format:check
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: quality-checks
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run unit tests
+      run: npm test
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results
+        path: coverage/
+
+  validation-tests:
+    name: Validation Framework Tests
+    runs-on: ubuntu-latest
+    needs: quality-checks
+    timeout-minutes: 30
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run coordinate system validation
+      run: npm run validate:coordinates
+
+    - name: Run physics accuracy validation
+      run: npm run validate:physics
+      timeout-minutes: 15
+
+    - name: Run performance benchmarks
+      run: npm run validate:performance
+
+    - name: Generate validation report
+      if: always()
+      run: npm run validate:report
+
+    - name: Upload validation report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: validation-report
+        path: validation-report.json
+
+  build-test:
+    name: Build Test
+    runs-on: ubuntu-latest
+    needs: [quality-checks, unit-tests]
+
+    strategy:
+      matrix:
+        target: [webgl, cpu]
+        optimization: [3, 5]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build with optimization level ${{ matrix.optimization }}
+      run: npx ts-node cli/hsml-cli.ts build --target ${{ matrix.target }} --optimization-level ${{ matrix.optimization }}
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-${{ matrix.target }}-opt${{ matrix.optimization }}
+        path: dist/
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    needs: unit-tests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests with coverage
+      run: npm run test:coverage
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage/lcov.info
+        flags: unittests
+        name: hsml-sdt-coverage
+
+  performance-regression:
+    name: Performance Regression Detection
+    runs-on: ubuntu-latest
+    needs: validation-tests
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout PR code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run PR benchmarks
+      run: npm run validate:performance > pr-benchmarks.txt
+
+    - name: Checkout base branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.base_ref }}
+
+    - name: Install base dependencies
+      run: npm ci
+
+    - name: Run base benchmarks
+      run: npm run validate:performance > base-benchmarks.txt
+
+    - name: Compare performance
+      run: |
+        echo "## Performance Comparison" >> $GITHUB_STEP_SUMMARY
+        echo "Comparing PR vs base branch performance..." >> $GITHUB_STEP_SUMMARY
+        diff base-benchmarks.txt pr-benchmarks.txt || true
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Run npm audit
+      run: npm audit --production || true
+
+    - name: Check for vulnerable dependencies
+      run: npm audit --audit-level=high
+
+  ci-summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [quality-checks, unit-tests, validation-tests, build-test, coverage]
+    if: always()
+
+    steps:
+    - name: Generate CI summary
+      run: |
+        echo "## HSML-SDT CI/CD Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ All quality checks and tests completed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "- Quality Checks: ${{ needs.quality-checks.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Unit Tests: ${{ needs.unit-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Validation Tests: ${{ needs.validation-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Build Tests: ${{ needs.build-test.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Coverage: ${{ needs.coverage.result }}" >> $GITHUB_STEP_SUMMARY

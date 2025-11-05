@@ -1,0 +1,7 @@
+spherical_math 6 0.00835874
+sdt_physics 6 0.0113017
+parser 6 0.00763307
+viewport 4 0.0122878
+safety 6 0.00935855
+runtime 3 0.0257126
+---

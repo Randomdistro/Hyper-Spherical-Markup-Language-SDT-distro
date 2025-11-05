@@ -42,15 +42,16 @@ struct SphericalCoord {
 };
 
 // 21-dimensional state vector
-struct State21D {
-    double dimensions[21];
+struct State7D {
+    double dimensions[7]; // 7D state representation
     enum Level { 
         ZERO_POINT = 0,  // 1D
         LINE = 1,        // 2D
         PLANE = 2,       // 3D
         SPHERE = 3,      // 4D
-        FLUX = 4,        // 5D
-        ENERGY = 5       // 6D
+        TOROID = 4,      // 5D
+        FLUX = 5,        // 6D
+        ENERGY = 6       // 7D
     };
 };
 

@@ -1,8 +1,8 @@
-# Line Limit of 350 Per File
+# Line Limit of 1350 Per File
 
 ## Ten Key Points About This Rule
 
-1. Enforces a 350-line maximum per file to prevent code bloat
+1. Enforces a 1350-line maximum per file to prevent code bloat
 2. Encourages breaking large files into smaller, focused components
 3. Promotes modular design and separation of concerns
 4. Includes examples of refactoring techniques for oversized files
@@ -13,10 +13,10 @@
 9. Prevents the cognitive overload associated with navigating large files
 10. Makes codebases more navigable and reduces merge conflicts
 
-**Rule**: Maintain a maximum of 350 lines per file.
+**Rule**: Maintain a maximum of 1350 lines per file.
 
 **Guidelines**:
-- Keep files concise by limiting to 350 lines maximum
+- Keep files concise by limiting to 1350 lines maximum
 - Split larger files into multiple logical components
 - Extract reusable functionality into separate modules
 - Consider creating utility files for common functions

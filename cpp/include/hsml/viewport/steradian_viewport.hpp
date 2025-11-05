@@ -15,7 +15,7 @@ private:
     std::array<sdt::SphericalCoord<T>, CORNER_COUNT> corners_;
     sdt::SphericalCoord<T> user_position_;
     T interpolation_quality_ = T(1.0);
-    T bubble_radius_ = std::numeric_limits<T>::infinity();
+    T bubble_radius_ = T(1000000.0);  // Default 1000km radius (in meters)
     
     // Interpolation cache for performance
     struct InterpolationCache {
@@ -26,13 +26,19 @@ private:
     mutable InterpolationCache cache_;
     
 public:
-    explicit SteradianViewport(T bubble_radius = std::numeric_limits<T>::infinity()) noexcept
+    explicit SteradianViewport(T bubble_radius = T(1000000.0)) noexcept
         : bubble_radius_(bubble_radius) {
+        // Use the bubble radius directly for corner positions
+        T corner_radius = bubble_radius;
+        
         // Initialize corners to default steradian coverage
-        corners_[0] = {bubble_radius, T(90), T(0)};    // Front-left
-        corners_[1] = {bubble_radius, T(90), T(90)};   // Front-right
-        corners_[2] = {bubble_radius, T(270), T(0)};   // Back-left
-        corners_[3] = {bubble_radius, T(270), T(90)};  // Back-right
+        corners_[0] = {corner_radius, T(90), T(0)};    // Front-left
+        corners_[1] = {corner_radius, T(90), T(90)};   // Front-right
+        corners_[2] = {corner_radius, T(270), T(0)};   // Back-left
+        corners_[3] = {corner_radius, T(270), T(90)};  // Back-right
+        
+        // Initialize default user position at center with typical screen viewing distance (400mm)
+        user_position_ = {T(0.4), T(180), T(180)};  // r=0.4m, theta=180°, phi=180°
     }
     
     // Set the four corner positions defining the viewport
@@ -145,18 +151,21 @@ private:
         for (size_t i = 0; i < CORNER_COUNT; ++i) {
             T distance = user_position_.spherical_distance(corners_[i]);
             
-            // Avoid division by zero
+            // Avoid division by zero and handle large distances
             if (distance < T(0.001)) {
                 weights.fill(T(0));
                 weights[i] = T(1);
                 return weights;
             }
             
+            // Use clamped distance to avoid numerical instability with very large values
+            T clamped_distance = std::min(distance, T(1000.0));
+            
             // Inverse distance weighting with quality adjustment
-            T weight = T(1) / (distance * distance);
+            T weight = T(1) / (clamped_distance * clamped_distance);
             if (interpolation_quality_ < T(1)) {
                 // Blend with linear interpolation
-                T linear_weight = T(1) / distance;
+                T linear_weight = T(1) / clamped_distance;
                 weight = interpolation_quality_ * weight + (T(1) - interpolation_quality_) * linear_weight;
             }
             

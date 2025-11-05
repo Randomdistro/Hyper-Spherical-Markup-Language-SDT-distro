@@ -60,11 +60,14 @@ struct State21D {
     
     // Level 3: Sphere (4D) - Volumetric position, relocation, angular rotation, orientation
     T sphere_r, sphere_theta, sphere_phi, sphere_t;
-    
-    // Level 4: Flux (5D) - Dynamic transformations
+   
+   // Level 4: Toroid (5D) - Topological transformations
+    T toroid_rotate, toroid_contra_rotate, toroid_poloidal, toroid_vortex, toroid_traction;
+
+    // Level 5: Flux (6D) - Dynamic transformations
     T flux_density, flux_direction, flux_rotation, flux_resonance, flux_coherence;
     
-    // Level 5: Energy (6D) - Energy types derived from each level
+    // Level 6: Energy (7D) - Energy types derived from each level
     T energy_potential, energy_kinetic, energy_binding, 
       energy_resonant, energy_displacement, energy_quantum;
 };

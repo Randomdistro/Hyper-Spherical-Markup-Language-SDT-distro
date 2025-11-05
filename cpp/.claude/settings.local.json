@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//mnt/c/Users/Jimmi/Downloads/schooltools_complete/Hyper-Spherical-Markup-Language-SDT-distro/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

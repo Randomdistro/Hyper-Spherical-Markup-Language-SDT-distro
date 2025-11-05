@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG -march=native -mtune=native -ffast-math CMakeFiles/hsml_runtime.dir/src/runtime/main.cpp.o CMakeFiles/hsml_runtime.dir/src/runtime/cli.cpp.o CMakeFiles/hsml_runtime.dir/src/runtime/dev_server.cpp.o -o hsml_runtime  libhsml_core.a -lpthread /usr/lib/gcc/x86_64-linux-gnu/13/libgomp.so /usr/lib/x86_64-linux-gnu/libpthread.a 

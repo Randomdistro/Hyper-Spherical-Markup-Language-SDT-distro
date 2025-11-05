@@ -12,17 +12,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native -mtune=native -ffast-math")
     set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -Wall -Wextra -Wpedantic")
-    
-    # Enable OpenMP for parallel physics calculations
-    find_package(OpenMP)
-    if(OpenMP_CXX_FOUND)
-        target_link_libraries(hsml_core PRIVATE OpenMP::OpenMP_CXX)
-    endif()
 endif()
 
 # Build configuration
 option(HSML_BUILD_TESTS "Build HSML-SDT tests" ON)
-option(HSML_BUILD_DEMOS "Build HSML-SDT demos" ON)
+option(HSML_BUILD_DEMOS "Build HSML-SDT demos" OFF)
 option(HSML_BUILD_WASM "Build WebAssembly target" OFF)
 option(HSML_ENABLE_SIMD "Enable SIMD optimizations" ON)
 
@@ -35,6 +29,7 @@ add_library(hsml_core STATIC
     src/core/state_21d.cpp
     src/parser/hsml_parser.cpp
     src/parser/hsml_lexer.cpp
+    src/runtime/gateway.cpp
     src/physics/sdt_engine.cpp
     src/physics/sdt_entity.cpp
     src/physics/sdt_field.cpp
@@ -46,6 +41,12 @@ add_library(hsml_core STATIC
 )
 
 target_include_directories(hsml_core PUBLIC include)
+
+# Enable OpenMP for parallel physics calculations
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(hsml_core PRIVATE OpenMP::OpenMP_CXX)
+endif()
 
 # Enable SIMD if requested
 if(HSML_ENABLE_SIMD)
@@ -130,6 +131,7 @@ if(HSML_BUILD_TESTS)
         tests/sdt_engine_tests.cpp
         tests/parser_tests.cpp
         tests/viewport_tests.cpp
+        tests/runtime_gateway_tests.cpp
         tests/physics_safety_tests.cpp
     )
     
@@ -141,6 +143,7 @@ if(HSML_BUILD_TESTS)
     add_test(NAME parser COMMAND hsml_tests "[parser]")
     add_test(NAME viewport COMMAND hsml_tests "[viewport]")
     add_test(NAME safety COMMAND hsml_tests "[safety]")
+    add_test(NAME runtime COMMAND hsml_tests "[runtime]")
 endif()
 
 # Demo applications

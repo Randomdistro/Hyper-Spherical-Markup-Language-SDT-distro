@@ -1,0 +1,233 @@
+"""
+HCS‑21 ▸ Hierarchical Phase Space ▸ v 1.1.1
+-------------------------------------------
+• Density‑coupled invariant  S = Σ wᵢ² ρᵢ‖vᵢ‖²
+• Level‑aware translate() with Moore‑Penrose   compensation
+• Strictly‑decreasing weight validation
+• Proper‑SO(3) rotation guard (det = +1)
+• Adaptive ridge with α‑clamp  + explosion safeguard
+"""
+
+from __future__ import annotations
+import warnings
+import numpy as np
+from  scipy.optimize import least_squares
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Exceptions
+# ──────────────────────────────────────────────────────────────────────────
+class HCSValidationError(ValueError):
+    """Base class for validation‑related failures."""
+
+
+class DensityError(HCSValidationError):
+    """Negative or malformed density array."""
+
+
+class RotationError(HCSValidationError):
+    """Input matrix not in SO(3)."""
+
+
+class CompensationError(RuntimeError):
+    """Compensation vector blew up → very likely ill‑posed parameters."""
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Helpers
+# ──────────────────────────────────────────────────────────────────────────
+_norm2 = lambda m: np.einsum("ij,ij->i", m, m, dtype=np.float64)  # row‑wise ‖·‖²
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Main class
+# ──────────────────────────────────────────────────────────────────────────
+class HPS:
+    """Seven‑level hierarchical position state with density coupling."""
+
+    # ─────────── constructor ───────────
+    def __init__(
+        self,
+        vectors,
+        weights,
+        rho=None,
+        uncertainty: float = 1.0e‑12,
+    ):
+        self.v = np.asarray(vectors, np.float64).reshape(7, 3)
+        self.w = np.asarray(weights, np.float64).reshape(7)
+
+        # Strict decreasing weight rule
+        if not np.all(self.w[:-1] > self.w[1:]):
+            raise HCSValidationError("Weights must be strictly decreasing (w[i] > w[i+1]).")
+
+        # Density
+        if rho is None:
+            self.rho = np.ones(7, np.float64)
+        else:
+            r = np.asarray(rho, np.float64)
+            self.rho = np.full(7, r) if r.ndim == 0 else r.reshape(7)
+            if np.any(self.rho < 0):
+                raise DensityError("Density entries must be ≥ 0.")
+
+        self.uncertainty = float(uncertainty)
+
+    # ─────────── basic ops ───────────
+    def copy(self) -> "HPS":
+        return HPS(self.v.copy(), self.w.copy(), self.rho.copy(), self.uncertainty)
+
+    def S(self) -> float:
+        """Density‑coupled invariant."""
+        return float(np.sum(self.w**2 * self.rho * _norm2(self.v)))
+
+    # ─────────── rotation ───────────
+    def rotate(self, R) -> "HPS":
+        R = np.asarray(R, np.float64)
+        if (
+            R.shape != (3, 3)
+            or abs(np.linalg.det(R) - 1.0) > 1e‑10
+            or np.linalg.det(R) <= 0
+            or not np.allclose(R @ R.T, np.eye(3), atol=1e‑10)
+        ):
+            raise RotationError("R must be proper orthogonal with det = +1.")
+        return HPS(self.v @ R.T, self.w, self.rho, self.uncertainty)
+
+    # ─────────── translation ───────────
+    def translate(
+        self,
+        level: int,
+        delta,
+        method: str = "ridge",
+        alpha: float = 1.0e‑8,
+        max_iter: int = 100,
+    ) -> "HPS":
+        if not 0 <= level <= 6:
+            raise HCSValidationError("Level must be 0‑6.")
+        delta = np.asarray(delta, np.float64).ravel()
+        if delta.shape != (3,):
+            raise HCSValidationError("delta must be a 3‑vector.")
+
+        S0 = self.S()
+        v_base = self.v.copy()
+        v_base[level] += delta
+
+        n_lower = 6 - level
+        if n_lower == 0:
+            return HPS(v_base, self.w, self.rho, self.uncertainty)
+
+        # residual & jac builder
+        def res_jac(x):
+            comp = x.reshape(n_lower, 3)
+            v_tmp = v_base.copy()
+            v_tmp[level + 1 :] += comp
+            res = float(np.dot(self.w**2 * self.rho, _norm2(v_tmp)) - S0)
+            J = np.zeros(3 * n_lower)
+            for k, j in enumerate(range(level + 1, 7)):
+                if self.rho[j] > 1e‑15:
+                    J[3 * k : 3 * k + 3] = 2 * self.w[j] ** 2 * self.rho[j] * v_tmp[j]
+            return res, J
+
+        # ---------- solver ----------
+        if method == "ridge":
+            def solve_ridge(lam):
+                r0, J = res_jac(np.zeros(3 * n_lower))
+                A = np.outer(J, J) + lam * np.eye(3 * n_lower)
+                b = -J * r0
+                try:
+                    return np.linalg.solve(A, b)
+                except np.linalg.LinAlgError:
+                    return np.linalg.lstsq(A, b, rcond=None)[0]
+
+            x = solve_ridge(alpha)
+            for _ in range(max_iter):
+                r, _ = res_jac(x)
+                if abs(r) < self.uncertainty:
+                    break
+                alpha = np.clip(alpha * (10 if abs(r) > 1 else 0.5), 1e‑12, 1e‑2)
+                x = solve_ridge(alpha)
+
+        elif method == "trust":
+            sol = least_squares(
+                lambda z: res_jac(z)[0],
+                np.zeros(3 * n_lower),
+                jac=lambda z: res_jac(z)[1],
+                ftol=self.uncertainty,
+                max_nfev=max_iter,
+                method="trf",
+            )
+            x = sol.x
+
+        else:
+            raise ValueError("method must be 'ridge' or 'trust'")
+
+        # explosion guard
+        if np.linalg.norm(x) > 1e4 * np.linalg.norm(delta):
+            raise CompensationError("Compensation magnitude >1e4 × primary delta.")
+
+        v_final = v_base.copy()
+        v_final[level + 1 :] += x.reshape(n_lower, 3)
+        out = HPS(v_final, self.w, self.rho, self.uncertainty)
+        if abs(out.S() - S0) > self.uncertainty:
+            warnings.warn("S‑conservation outside tolerance.", RuntimeWarning)
+        return out
+
+    # ─────────── repr ───────────
+    def __repr__(self):
+        head = f"HPS(S={self.S():.6g}, tol={self.uncertainty})"
+        body = "\n".join(
+            f"  L{i}: v={self.v[i]}, w={self.w[i]:.3g}, ρ={self.rho[i]:.3g}"
+            for i in range(7)
+        )
+        return f"{head}\n{body}"
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Optional comprehensive test‑suite
+# ──────────────────────────────────────────────────────────────────────────
+def _rand_weights(rng):
+    w = np.sort(rng.random(7))[::-1] + 0.05
+    return w / w.sum()
+
+
+def _run_tests():
+    rng = np.random.default_rng(0)
+
+    # init / validation
+    v = rng.standard_normal((7, 3))
+    w = _rand_weights(rng)
+    rho = 1 + rng.random(7)
+    HPS(v, w, rho)  # should succeed
+    try:
+        HPS(v, w[::-1], rho)
+        raise AssertionError("non‑decreasing weights accepted")
+    except HCSValidationError:
+        pass
+    try:
+        bad_rho = rho.copy(); bad_rho[2] = -1
+        HPS(v, w, bad_rho)
+        raise AssertionError("negative rho accepted")
+    except DensityError:
+        pass
+
+    # S equivalence when rho=const
+    h1 = HPS(v, w, rho=1.0)
+    h2 = HPS(v, w, rho=np.ones(7))
+    assert np.isclose(h1.S(), h2.S())
+
+    # rotation invariance
+    R = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+    assert np.isclose(h1.S(), h1.rotate(R).S())
+
+    # level‑translate fuzz
+    for _ in range(500):
+        h = HPS(rng.standard_normal((7, 3)), _rand_weights(rng), 1 + rng.random(7))
+        lvl = rng.integers(0, 7)
+        delta = rng.standard_normal(3) * 0.01
+        S0 = h.S()
+        h2 = h.translate(lvl, delta)
+        assert abs(h2.S() - S0) < 1e-9
+
+    print("✅  All built‑in tests passed.")
+
+
+if __name__ == "__main__":
+    _run_tests()
